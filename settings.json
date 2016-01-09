@@ -1,7 +1,7 @@
 {
     "title": "Dadren 0.1",
-    "window_size": {
-        "width": 500,
-        "height": 500,
+    "resolution": {
+        "width": 1440,
+        "height": 900
     }
 }
