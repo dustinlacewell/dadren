@@ -1,0 +1,33 @@
+{
+    "info": {
+        "label": "Retrodays 20x20",
+        "authors": ["anistar"],
+        "tile_size": {
+            "width": 20,
+            "height": 20
+        }
+    },
+    "tilemaps": [
+        {
+            "name": "terrain",
+            "filename": "terrain.png",
+            "tiles": [
+                "dirt", "snow",
+                "grass", "snowy_grass",
+                "road", "road_line",
+                "water", "ice",
+                "stone", "marsh"
+            ]
+        },
+        {
+            "name": "plants",
+            "filename": "plants.png",
+            "tiles": [
+                "little_bluestem", "big_bluestem",
+                "sweetgrass", "grand_fir",
+                "young_alder", "mature_alder",
+                "maple", "larch_bolete"
+            ]
+        }
+    ]
+}

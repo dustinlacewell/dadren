@@ -12,6 +12,7 @@ type
   AppSettings = object
     title: string
     resolution: Resolution
+    tileset_path: string
   AppObj* = object
     settings: AppSettings
     fps: FpsManager
@@ -35,7 +36,9 @@ proc newApp*(settings_filename: string): App =
                                   (Renderer_Accelerated or
                                    Renderer_PresentVsync or
                                    Renderer_TargetTexture))
-  result.resources = newResourceManager(result.window, result.display)
+  result.resources = newResourceManager(result.window,
+                                        result.display,
+                                        result.settings.tileset_path)
   result.fps.init
   result.running = true
 

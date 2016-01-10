@@ -71,7 +71,11 @@ proc get*(am: AtlasManager, name: string): Atlas =
     raise newException(NoSuchResourceError, msg)
   am.registry[name]
 
-proc render*(display: RendererPtr, atlas: Atlas, tx, ty, dx, dy) =
+proc calculateTilePosition*(atlas: Atlas, n): tuple[x, y: int] =
+  ((if n > 0: n %% atlas.info.size.width else: 0),
+   (if n > 0: n /% atlas.info.size.width else: 0))
+
+proc render*(display: RendererPtr, atlas: Atlas, tx, ty, dx, dy: int) =
   let
     sx = tx *% atlas.info.tile_size.width
     sy = ty *% atlas.info.tile_size.height
@@ -80,3 +84,6 @@ proc render*(display: RendererPtr, atlas: Atlas, tx, ty, dx, dy) =
                  atlas.info.tile_size.width,
                  atlas.info.tile_size.height)
 
+proc render*(display: RendererPtr, atlas: Atlas, n, dx, dy: int) =
+  let (tx, ty) = atlas.calculateTilePosition(n)
+  display.render(atlas, tx, ty, dx, dy)
