@@ -5,55 +5,78 @@ import tables
 import sdl2, sdl2/gfx, sdl2/image
 
 import dadren/textures
-import dadren/resources
 import dadren/exceptions
+import dadren/utils
 
 type
   AtlasInfo* = object
-    filename*: string
-    name*: string
-    width*, height*: int
+    name, filename*: string
+    size*: Resolution
+    tile_size*: Resolution
 
-  Atlas* = object
+  AtlasObj* = object
     info*: AtlasInfo
     texture*: Texture
+  Atlas* = ref AtlasObj
 
   AtlasManagerObj = object
-    resources: ResourceManager
+    textures: TextureManager
     registry: Table[string, Atlas]
   AtlasManager* = ref AtlasManagerObj
 
-proc loadAtlasInfo*(filename: string): AtlasInfo =
-  try:
-    let json_data = readFile(filename)
-    result = to[AtlasInfo](json_data) # unmarshal
-  except IOError:
-    let msg = "The resource `" & filename & "` could not be found."
-    raise newException(InvalidResourceError, msg)
+proc newAtlasInfo*(name, filename: string, size, tile_size: Resolution): AtlasInfo =
+  result.name = name
+  result.filename = filename
+  result.size = size
+  result.tile_size = tile_size
 
-proc newAtlasManager*(resources: ResourceManager): AtlasManager =
+proc newAtlas*(info: AtlasInfo, texture: Texture): Atlas =
   new(result)
-  result.resources = resources
+  result.info = info
+  result.texture = texture
+
+proc newAtlasManager*(tm: TextureManager): AtlasManager =
+  new(result)
+  result.textures = tm
   result.registry = initTable[string, Atlas]()
 
-proc load*(am: AtlasManager, info: AtlasInfo): Atlas =
-  if not existsFile(info.filename):
-    let msg = "The atlas texture `" & info.filename & "` could not be found."
-    raise newException(InvalidResourceError, msg)
-  result.info = info
-  try:
-    result.texture = am.resources.loadTexture(info.name, info.filename)
-  except:
-    let msg = "The atlas texture `" & info.filename & "` failed to load."
-    raise newException(InvalidResourceError, msg)
-  am.registry[info.name] = result
+proc calculateAtlasSize(texture: Texture, tile_size: Resolution): Resolution =
+  result.width = texture.info.size.width /% tile_size.width
+  result.height = texture.info.size.height /% tile_size.height
 
-proc load*(am: AtlasManager, name, filename: string, width, height: int): Atlas =
-  let info = AtlasInfo(name: name, filename: filename, width: width, height: height)
-  result = load(am, info)
+proc validateTileSize(info: AtlasInfo, texture: Texture) =
+  # ensure the tile_size evenly divides into the Texture
+  if (texture.info.size.width %% info.tile_size.width != 0 or
+      texture.info.size.height %% info.tile_size.height !=0):
+    let msg = "Atlas dimensions for `" & info.name & "` are incompatible with associated texture."
+    raise newException(InvalidResourceError, msg)
+
+proc load*(am: AtlasManager, name, filename: string, t_width, t_height: int): Atlas =
+  if am.registry.hasKey(name):
+    return am.registry[name]
+
+  let
+    texture = am.textures.load(name, filename)
+    tile_size = newResolution(t_width, t_height)
+    atlas_size = texture.calculateAtlasSize(tile_size)
+    info = newAtlasInfo(name, filename, atlas_size, tile_size)
+
+  validateTileSize(info, texture)
+  result = newAtlas(info, texture)
+  am.registry[name] = result
 
 proc get*(am: AtlasManager, name: string): Atlas =
   if not am.registry.hasKey(name):
     let msg = "No atlas with name `" & name & "` is loaded."
     raise newException(NoSuchResourceError, msg)
   am.registry[name]
+
+proc render*(display: RendererPtr, atlas: Atlas, tx, ty, dx, dy) =
+  let
+    sx = tx *% atlas.info.tile_size.width
+    sy = ty *% atlas.info.tile_size.height
+
+  display.render(atlas.texture, sx, sy, dx, dy,
+                 atlas.info.tile_size.width,
+                 atlas.info.tile_size.height)
+

@@ -6,25 +6,20 @@ import sdl2, sdl2/gfx, sdl2/image
 import dadren/settings
 import dadren/resources
 import dadren/atlases
-import dadren/rect
+import dadren/utils
 
 type
-  AppResolution = object
-    width, height: int
   AppSettings = object
     title: string
-    resolution: AppResolution
+    resolution: Resolution
   AppObj* = object
     settings: AppSettings
     fps: FpsManager
-    resources: ResourceManager
-    atlases*: AtlasManager
+    resources*: ResourceManager
     window*: WindowPtr
     display*: RendererPtr
     running*: bool
   App* = ref AppObj
-
-converter toCInt(x: int): cint = cint x
 
 proc newApp*(settings_filename: string): App =
   sdl2.init(INIT_EVERYTHING)
@@ -41,7 +36,6 @@ proc newApp*(settings_filename: string): App =
                                    Renderer_PresentVsync or
                                    Renderer_TargetTexture))
   result.resources = newResourceManager(result.window, result.display)
-  result.atlases = newAtlasManager(result.resources)
   result.fps.init
   result.running = true
 
