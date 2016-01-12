@@ -1,11 +1,11 @@
 import os
 import future
 
-import sdl2, sdl2/gfx, sdl2/image
+import sdl2, sdl2/image
 
 import dadren/settings
 import dadren/resources
-import dadren/atlases
+import dadren/viewport
 import dadren/utils
 
 type
@@ -15,7 +15,6 @@ type
     tileset_path: string
   AppObj* = object
     settings: AppSettings
-    fps: FpsManager
     resources*: ResourceManager
     window*: WindowPtr
     display*: RendererPtr
@@ -39,7 +38,6 @@ proc newApp*(settings_filename: string): App =
   result.resources = newResourceManager(result.window,
                                         result.display,
                                         result.settings.tileset_path)
-  result.fps.init
   result.running = true
 
 proc setLogicalSize(app: App, width, height: cint) =
@@ -60,7 +58,7 @@ proc handleFrame[T](app: App, state: T, handler: (App, T, float)->void) =
   # clear the display
   app.clear(0, 0, 0)
   # calculate frame time in seconds
-  let dt = app.fps.getFramerate() / 1000
+  let dt = 1.0 # TODO
   # call the user's frame handler
   handler(app, state, dt)
   # display the frame result
@@ -90,7 +88,7 @@ proc run*[T](app: App, state: T,
     # call the user's frame and event handlers
     handleFrame[T](app, state, frame_handler)
     handleEvents[T](app, state, event_handler)
-    app.fps.delay # throttle fps
+    # TODO throttle fps
 
   # clean up
   destroy app.resources

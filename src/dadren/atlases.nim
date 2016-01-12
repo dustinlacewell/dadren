@@ -2,7 +2,7 @@ import os
 import marshal
 import tables
 
-import sdl2, sdl2/gfx, sdl2/image
+import sdl2, sdl2/image
 
 import dadren/textures
 import dadren/exceptions
