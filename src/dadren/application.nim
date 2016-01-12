@@ -1,11 +1,10 @@
 import os
 import future
 
-import sdl2, sdl2/image
+import sdl2
 
 import dadren/settings
 import dadren/resources
-import dadren/viewport
 import dadren/utils
 
 type
