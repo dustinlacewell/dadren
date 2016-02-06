@@ -1,6 +1,10 @@
 import sdl2, sdl2/image
 
 type
+  Vec2* = tuple[x, y: int]
+  Vec3* = tuple[x, y, z: int]
+  Size* = Vec2
+  Position* = Vec2
   Resolution* = object
     width*, height*: int
 

@@ -1,0 +1,20 @@
+{
+    "tileset": [
+        {
+            "type": "json",
+            "key": "tiles",
+            "url": "tilesets/retrodays/tiles.json"
+        },
+        {
+            "type": "image",
+            "key": "terrain",
+            "url": "tilesets/retrodays/terrain.png"
+        },
+        {
+            "type": "image",
+            "key": "plants",
+            "url": "tilesets/retrodays/plants.png"
+        }
+    ]
+
+}

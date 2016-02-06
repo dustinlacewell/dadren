@@ -5,18 +5,22 @@ import sdl2
 
 import dadren/settings
 import dadren/resources
+import dadren/clock
+import dadren/scenes
 import dadren/utils
 
 type
   AppSettings = object
-    title: string
-    resolution: Resolution
-    tileset_path: string
+    title*: string
+    resolution*: Resolution
+    tileset_path*: string
   AppObj* = object
-    settings: AppSettings
+    settings*: AppSettings
     resources*: ResourceManager
+    scenes*: SceneManager
     window*: WindowPtr
     display*: RendererPtr
+    clock*: Clock
     running*: bool
   App* = ref AppObj
 
@@ -24,6 +28,8 @@ proc newApp*(settings_filename: string): App =
   sdl2.init(INIT_EVERYTHING)
   new(result)
   result.settings = loadSettings[AppSettings](settings_filename)
+  result.clock = newClock(0.01666666)
+  result.scenes = newSceneManager()
   result.window = createWindow(result.settings.title, 0, 0,
                                result.settings.resolution.width,
                                result.settings.resolution.height,
@@ -49,21 +55,11 @@ proc clear*(app: App, r, g, b: uint8) =
   app.display.setDrawColor(r, g, b, 0)
   app.display.clear
 
-proc handleFrame[T](app: App, state: T, handler: (App, T, float)->void) =
-  # set window as render target
-  app.display.setRenderTarget(nil)
-  # configure the logical render size (output scaling)
-  app.setLogicalSize()
-  # clear the display
-  app.clear(0, 0, 0)
-  # calculate frame time in seconds
-  let dt = 1.0 # TODO
-  # call the user's frame handler
-  handler(app, state, dt)
-  # display the frame result
-  app.display.present
+proc updateFrame(app: App) =
+  app.clock.tick()
+  app.clock.drain((t: float, dt: float) => app.scenes.current.update(t, dt))
 
-proc handleEvents[T](app: App, state: T, handler: (App, T, Event)->void) =
+proc handleEvents(app: App) =
     var event = defaultEvent
     # poll for any pending events
     while pollEvent(event):
@@ -76,18 +72,22 @@ proc handleEvents[T](app: App, state: T, handler: (App, T, Event)->void) =
           echo "resize: " & $event.window.data1 & " x " & $event.window.data2
       else:
         # call the user's event handler
-        handler(app, state, event)
+        app.scenes.current.handle(event)
 
+proc drawFrame(app: App) =
+  app.display.setRenderTarget(nil) # set window as render target
+  app.setLogicalSize() # configure the logical render size (output scaling)
+  app.clear(0, 0, 0)
+  app.scenes.current.draw()
+  app.display.present
 
-proc run*[T](app: App, state: T,
-             frame_handler: (App, T, float)->void,
-             event_handler: (App, T, Event)->void) =
+proc run*(app: App, first_scene: Scene) =
+  app.scenes.set_scene(first_scene)
 
   while app.running:
-    # call the user's frame and event handlers
-    handleFrame[T](app, state, frame_handler)
-    handleEvents[T](app, state, event_handler)
-    # TODO throttle fps
+    app.updateFrame()
+    app.handleEvents()
+    app.drawFrame()
 
   # clean up
   destroy app.resources
