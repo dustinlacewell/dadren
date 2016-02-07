@@ -13,7 +13,7 @@ type
   AppSettings = object
     title*: string
     resolution*: Resolution
-    tileset_path*: string
+    tilepack_path*: string
   AppObj* = object
     settings*: AppSettings
     resources*: ResourceManager
@@ -42,7 +42,7 @@ proc newApp*(settings_filename: string): App =
                                    Renderer_TargetTexture))
   result.resources = newResourceManager(result.window,
                                         result.display,
-                                        result.settings.tileset_path)
+                                        result.settings.tilepack_path)
   result.running = true
 
 proc setLogicalSize(app: App, width, height: cint) =

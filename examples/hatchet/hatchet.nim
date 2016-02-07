@@ -7,7 +7,7 @@ import random
 
 import dadren/application
 import dadren/scenes
-import dadren/tilesets
+import dadren/tilepacks
 import dadren/entities
 
 var rng = initMersenneTwister(urandom(2500))
@@ -27,7 +27,7 @@ let templates = parseJson("""
 type
   GameScene = ref object of Scene
     app: App
-    tileset: Tileset
+    tilepack: Tilepack
     entities: EntityManager
 
 proc newGameScene(app: App): GameScene =
@@ -38,7 +38,7 @@ proc newGameScene(app: App): GameScene =
 method update(self: GameScene, t, dt: float) =
   let
     resolution = self.app.settings.resolution
-    tile_size = self.tileset.info.tile_size
+    tile_size = self.tilepack.info.tile_size
     max_width = float(resolution.width - tile_size.width)
     max_height = float(resolution.height - tile_size.height)
 
@@ -64,13 +64,13 @@ method update(self: GameScene, t, dt: float) =
 
 method draw(self: GameScene) =
   for i in self.entities.has(Position, Icon):
-    self.app.display.render(self.tileset, i.icon.rune,
+    self.app.display.render(self.tilepack, i.icon.rune,
                              int(i.position.x),
                              int(i.position.y))
 
 method enter(self: GameScene) =
   # load the terrain texture atlas into game state
-  self.tileset = self.app.resources.tilesets.load("retrodays")
+  self.tilepack = self.app.resources.tilepacks.load("retrodays")
   self.entities.load(templates) # load entity templates from json
 
   for i in 0..500:

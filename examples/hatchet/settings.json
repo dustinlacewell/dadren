@@ -4,5 +4,5 @@
         "width": 1440,
         "height": 900
     },
-    "tileset_path": "tilesets"
+    "tilepack_path": "tilepacks"
 }

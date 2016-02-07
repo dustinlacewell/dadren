@@ -5,7 +5,7 @@ import sdl2, sdl2/image
 
 import dadren/textures
 import dadren/atlases
-import dadren/tilemaps
+import dadren/tilepacks
 import dadren/tilesets
 import dadren/exceptions
 
@@ -15,20 +15,20 @@ type
     display*: RendererPtr
     textures*: TextureManager
     atlases*: AtlasManager
-    tilemaps*: TilemapManager
     tilesets*: TilesetManager
+    tilepacks*: TilepackManager
   ResourceManager* = ref ResourceManagerObj
 
 proc newResourceManager*(window: WindowPtr,
                          display: RendererPtr,
-                         tilemap_path: string): ResourceManager =
+                         tileset_path: string): ResourceManager =
   new(result)
   result.window = window
   result.display = display
   result.textures = newTextureManager(window, display)
   result.atlases = newAtlasManager(result.textures)
-  result.tilemaps = newTilemapManager(result.atlases)
-  result.tilesets = newTilesetManager(result.tilemaps, tilemap_path)
+  result.tilesets = newTilesetManager(result.atlases)
+  result.tilepacks = newTilepackManager(result.tilesets, tileset_path)
 
 proc destroy*(rm: ResourceManager) =
   rm.display = nil

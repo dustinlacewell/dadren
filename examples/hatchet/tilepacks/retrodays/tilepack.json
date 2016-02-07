@@ -7,7 +7,7 @@
             "height": 20
         }
     },
-    "tilemaps": [
+    "tilesets": [
         {
             "name": "terrain",
             "filename": "terrain.png",
