@@ -246,7 +246,6 @@ proc render*(typedef: TypeDef): NimNode {.compileTime.} =
   let (name, params) = typedef.type_name.asTuple()
   result.add(name)
   if len(params) > 0:
-    echo params.treeRepr
     var generics = newNimNode(nnkGenericParams)
     for param in params:
       generics.add(param)

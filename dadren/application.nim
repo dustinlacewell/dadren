@@ -1,5 +1,6 @@
 import os
 import future
+import strutils
 
 import sdl2
 
@@ -12,6 +13,7 @@ import dadren/utils
 type
   AppSettings = object
     title*: string
+    scale*: float
     resolution*: Resolution
     tilepack_path*: string
   AppObj* = object
@@ -24,15 +26,29 @@ type
     running*: bool
   App* = ref AppObj
 
+proc setLogicalSize(app: App, width, height: cint) =
+  discard app.display.setLogicalSize(cint(width.float / app.settings.scale),
+                                     cint(height.float / app.settings.scale))
+
+proc setLogicalSize(app: App) =
+  if app.settings.resolution.width == -1 and app.settings.resolution.height == -1:
+    var dm = DisplayMode()
+    discard getCurrentDisplayMode(0, dm)
+    app.setLogicalSize(dm.w, dm.h)
+  else:
+    app.setLogicalSize(app.settings.resolution.width,
+                       app.settings.resolution.height)
+
 proc newApp*(settings_filename: string): App =
   sdl2.init(INIT_EVERYTHING)
+  var dm = DisplayMode()
+  discard getCurrentDisplayMode(0, dm)
+
   new(result)
   result.settings = loadSettings[AppSettings](settings_filename)
-  result.clock = newClock(0.01666666)
+  result.clock = newClock(0.01666666 * 2.0)
   result.scenes = newSceneManager()
-  result.window = createWindow(result.settings.title, 0, 0,
-                               result.settings.resolution.width,
-                               result.settings.resolution.height,
+  result.window = createWindow(result.settings.title, 0, 0, dm.w, dm.h,
                                (SDL_WINDOW_SHOWN or
                                 SDL_WINDOW_ALLOW_HIGHDPI or
                                 SDL_WINDOW_RESIZABLE))
@@ -43,13 +59,8 @@ proc newApp*(settings_filename: string): App =
   result.resources = newResourceManager(result.window,
                                         result.display,
                                         result.settings.tilepack_path)
+  result.setLogicalSize()
   result.running = true
-
-proc setLogicalSize(app: App, width, height: cint) =
-  discard app.display.setLogicalSize(width, height)
-
-proc setLogicalSize(app: App) =
-  app.setLogicalSize(app.settings.resolution.width, app.settings.resolution.height)
 
 proc clear*(app: App, r, g, b: uint8) =
   app.display.setDrawColor(r, g, b, 0)
@@ -69,14 +80,14 @@ proc handleEvents(app: App) =
         break
       of WindowEvent:
         if event.window.event == WindowEvent_Resized:
-          echo "resize: " & $event.window.data1 & " x " & $event.window.data2
+          app.setLogicalSize(event.window.data1, event.window.data2)
       else:
         # call the user's event handler
         app.scenes.current.handle(event)
 
 proc drawFrame(app: App) =
   app.display.setRenderTarget(nil) # set window as render target
-  app.setLogicalSize() # configure the logical render size (output scaling)
+  # app.setLogicalSize() # configure the logical render size (output scaling)
   app.clear(0, 0, 0)
   app.scenes.current.draw()
   app.display.present

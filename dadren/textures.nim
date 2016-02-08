@@ -22,7 +22,7 @@ proc loadTexture*(display: RendererPtr, surface: SurfacePtr): TexturePtr =
 type
   TextureInfo* = object
     name*, filename*: string
-    size*: Resolution
+    size*: Size
 
   TextureObj = object
     info*: TextureInfo
@@ -35,7 +35,7 @@ type
     registry: Table[string, Texture]
   TextureManager* = ref TextureManagerObj
 
-proc newTextureInfo*(name, filename: string, size: Resolution): TextureInfo =
+proc newTextureInfo*(name, filename: string, size: Size): TextureInfo =
   result.name = name
   result.filename = filename
   result.size = size
@@ -71,7 +71,7 @@ proc load*(tm: TextureManager, name, filename: string): Texture =
   try:
     let
       surface = tm.window.loadSurface(filename)
-      size = newResolution(surface.w, surface.h)
+      size: Size = (surface.w.int, surface.h.int)
       info = newTextureInfo(name, filename, size)
       handle = tm.display.loadTexture(surface)
     result = newTexture(info, handle)
@@ -87,15 +87,16 @@ proc get*(tm: TextureManager, name: string): Texture =
   tm.registry[name]
 
 proc render*(display: RendererPtr, texture: Texture, x, y: int) =
-  var dst = newRect(x, y,
-                    texture.info.size.width,
-                    texture.info.size.height)
-  display.copy(texture.handle, nil, dst.addr)
+  var dst: sdl2.Rect = (x.cint,
+                        y.cint,
+                        texture.info.size.w.cint,
+                        texture.info.size.h.cint)
+  display.copy(texture.handle, cast[ptr sdl2.Rect](nil), dst.addr)
 
 proc render*(display: RendererPtr, texture: Texture,
              sx, sy, dx, dy, width, height: int) =
   var
-    src = newRect(sx, sy, width, height)
-    dst = newRect(dx, dy, width, height)
+    src = (sx.cint, sy.cint, width.cint, height.cint)
+    dst = (dx.cint, dy.cint, width.cint, height.cint)
   display.copy(texture.handle, src.addr, dst.addr)
 

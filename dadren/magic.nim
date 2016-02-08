@@ -167,7 +167,6 @@ proc get*(em: $1, id: int): $2 =
   result.$1 = em.$2.getOrDefault(id)
 """.format(to_field_name(component), to_table_name(component))
     code = code & snippet
-  echo code
   parseStmt(code)[0]
 
 proc generate_has_component(name: string,
@@ -334,5 +333,4 @@ macro aggregate*(type_name: expr, component_list: expr): stmt {.immediate.} =
   for component in components:
     result.add(generate_add_component(name, component))
   result.add(generate_create_entity(name, components))
-  echo result.treeRepr
 

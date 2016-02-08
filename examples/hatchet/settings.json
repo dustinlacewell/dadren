@@ -1,8 +1,6 @@
 {
     "title": "Hatchet 0.1",
-    "resolution": {
-        "width": 1440,
-        "height": 900
-    },
+    "scale": 1.0,
+    "resolution": {"width": -1, "height": -1},
     "tilepack_path": "tilepacks"
 }

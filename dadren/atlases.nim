@@ -11,8 +11,8 @@ import dadren/utils
 type
   AtlasInfo* = object
     name, filename*: string
-    size*: Resolution
-    tile_size*: Resolution
+    size*: Size
+    tile_size*: Size
 
   AtlasObj* = object
     info*: AtlasInfo
@@ -24,7 +24,7 @@ type
     registry: Table[string, Atlas]
   AtlasManager* = ref AtlasManagerObj
 
-proc newAtlasInfo*(name, filename: string, size, tile_size: Resolution): AtlasInfo =
+proc newAtlasInfo*(name, filename: string, size, tile_size: Size): AtlasInfo =
   result.name = name
   result.filename = filename
   result.size = size
@@ -40,14 +40,14 @@ proc newAtlasManager*(tm: TextureManager): AtlasManager =
   result.textures = tm
   result.registry = initTable[string, Atlas]()
 
-proc calculateAtlasSize(texture: Texture, tile_size: Resolution): Resolution =
-  result.width = texture.info.size.width /% tile_size.width
-  result.height = texture.info.size.height /% tile_size.height
+proc calculateAtlasSize(texture: Texture, tile_size: Size): Size =
+  result.w = texture.info.size.w /% tile_size.w
+  result.h = texture.info.size.h /% tile_size.h
 
 proc validateTileSize(info: AtlasInfo, texture: Texture) =
   # ensure the tile_size evenly divides into the Texture
-  if (texture.info.size.width %% info.tile_size.width != 0 or
-      texture.info.size.height %% info.tile_size.height !=0):
+  if (texture.info.size.w %% info.tile_size.w != 0 or
+      texture.info.size.h %% info.tile_size.h !=0):
     let msg = "Atlas dimensions for `" & info.name & "` are incompatible with associated texture."
     raise newException(InvalidResourceError, msg)
 
@@ -57,7 +57,7 @@ proc load*(am: AtlasManager, name, filename: string, t_width, t_height: int): At
 
   let
     texture = am.textures.load(name, filename)
-    tile_size = newResolution(t_width, t_height)
+    tile_size = (t_width, t_height)
     atlas_size = texture.calculateAtlasSize(tile_size)
     info = newAtlasInfo(name, filename, atlas_size, tile_size)
 
@@ -72,17 +72,17 @@ proc get*(am: AtlasManager, name: string): Atlas =
   am.registry[name]
 
 proc calculateTilePosition*(atlas: Atlas, n): tuple[x, y: int] =
-  ((if n > 0: n %% atlas.info.size.width else: 0),
-   (if n > 0: n /% atlas.info.size.width else: 0))
+  ((if n > 0: n %% atlas.info.size.w else: 0),
+   (if n > 0: n /% atlas.info.size.w else: 0))
 
 proc render*(display: RendererPtr, atlas: Atlas, tx, ty, dx, dy: int) =
   let
-    sx = tx *% atlas.info.tile_size.width
-    sy = ty *% atlas.info.tile_size.height
+    sx = tx *% atlas.info.tile_size.w
+    sy = ty *% atlas.info.tile_size.h
 
   display.render(atlas.texture, sx, sy, dx, dy,
-                 atlas.info.tile_size.width,
-                 atlas.info.tile_size.height)
+                 atlas.info.tile_size.w,
+                 atlas.info.tile_size.h)
 
 proc render*(display: RendererPtr, atlas: Atlas, n, dx, dy: int) =
   let (tx, ty) = atlas.calculateTilePosition(n)

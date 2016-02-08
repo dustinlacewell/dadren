@@ -7,8 +7,7 @@ import dadren/exceptions
 import dadren/utils
 
 type
-  Point = tuple[x, y: int]
-  TileTable = Table[string, Point]
+  TileTable = Table[string, utils.Point]
 
   TilesetInfo = object
     name*, filename*: string
@@ -40,7 +39,7 @@ proc newTilesetManager*(atlases: AtlasManager): TilesetManager =
   result.registry = initTable[string, Tileset]()
 
 proc getTileTable*(atlas: Atlas, tiles: seq[string]): TileTable =
-  result = initTable[string, Point]()
+  result = initTable[string, utils.Point]()
   var i = 0
   for tile in tiles:
     result[tile] = atlas.calculateTilePosition(i)

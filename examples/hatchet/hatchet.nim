@@ -1,3 +1,4 @@
+import tables
 import json
 import macros
 import strutils
@@ -9,6 +10,9 @@ import dadren/application
 import dadren/scenes
 import dadren/tilepacks
 import dadren/entities
+import dadren/tilemap
+import dadren/utils
+
 
 var rng = initMersenneTwister(urandom(2500))
 
@@ -25,22 +29,40 @@ let templates = parseJson("""
 
 
 type
+  GameTile* = ref object of Tile
+    entity: int
+  TreeGenerator* = ref object of Generator
+    entities: EntityManager
   GameScene = ref object of Scene
     app: App
     tilepack: Tilepack
+    tilemap: Tilemap
     entities: EntityManager
+
+method newChunk*(generator: TreeGenerator, pos: utils.Point, size: Size): Chunk =
+  result = newChunk()
+  for x in pos.x..(pos.x + size.w):
+    for y in pos.y..(pos.y + size.h):
+      let e = generator.entities.create("tree")
+      result.add((x, y), GameTile(entity: e.id))
 
 proc newGameScene(app: App): GameScene =
   new(result)
   result.app = app
   result.entities = newEntityManager()
+  let generator = TreeGenerator(entities: result.entities)
+  result.tilemap = generator.newTilemap((10, 10))
 
 method update(self: GameScene, t, dt: float) =
+  var
+    width: cint
+    height: cint
+  self.app.display.getLogicalSize(width, height)
+
   let
-    resolution = self.app.settings.resolution
     tile_size = self.tilepack.info.tile_size
-    max_width = float(resolution.width - tile_size.width)
-    max_height = float(resolution.height - tile_size.height)
+    max_width = float(width - tile_size.width)
+    max_height = float(height - tile_size.height)
 
   for e in self.entities.has(Position, Velocity):
     e.position.x += e.velocity.dx * dt
