@@ -102,7 +102,7 @@ proc generate_manager(name: string, components: seq[string]): NimNode {.compileT
   var fields = newSeq[Field]()
   fields.add(newField("last_id", "int"))
   fields.add(newField("entities", newSeqDesc("int")))
-  fields.add(newField("templates", newTypeDesc(newTypeName("Table", @[
+  fields.add(newField(newName("templates", true), newTypeDesc(newTypeName("Table", @[
     newTypeDesc("string", false),
     newTypeDesc("JsonNode", false)
   ]))))

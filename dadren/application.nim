@@ -39,6 +39,11 @@ proc setLogicalSize(app: App) =
     app.setLogicalSize(app.settings.resolution.width,
                        app.settings.resolution.height)
 
+proc getLogicalSize*(app: App): Size =
+  var width, height: cint
+  app.display.getLogicalSize(width, height)
+  (width.int, height.int)
+
 proc newApp*(settings_filename: string): App =
   sdl2.init(INIT_EVERYTHING)
   var dm = DisplayMode()
@@ -86,9 +91,9 @@ proc handleEvents(app: App) =
         app.scenes.current.handle(event)
 
 proc drawFrame(app: App) =
-  app.display.setRenderTarget(nil) # set window as render target
+  # app.display.setRenderTarget(nil) # set window as render target
   # app.setLogicalSize() # configure the logical render size (output scaling)
-  app.clear(0, 0, 0)
+  # app.clear(0, 0, 0)
   app.scenes.current.draw()
   app.display.present
 

@@ -24,12 +24,12 @@ type
 
   TilepackData = object
     info*: TilepackInfo
-    tilesets: seq[TilesetData]
+    tilesets*: seq[TilesetData]
 
   TilepackObj = object
     info*: TilepackInfo
     tilesets: TilesetTable
-    tiles: TilesetTable
+    tiles*: TilesetTable
   Tilepack* = ref TilepackObj
 
   TilepackManagerObj = object

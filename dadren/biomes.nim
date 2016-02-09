@@ -5,37 +5,38 @@ import sequtils
 import tables
 import os
 
-import csfml
+import random
 import perlin
+import csfml
 
 randomize()
 
-let scale = 25.0
+proc getJitter(j: float): float = random.random(j) - (j / 2.0)
 
-proc getNoiseValue(n: Noise, x, y: int): float =
+proc getNoise(n: Noise, x, y: int, scale=1.0, jitter=0.0): float =
   let
     nx = float(x) / scale
     ny = float(y) / scale
-  n.perlin(nx, ny)
+  n.perlin(nx, ny) + getJitter(jitter)
 
 type
   BiomeObj[T] = object
     noise: Noise
     generator: (float) -> T
-  Biome[T] = ref BiomeObj[T]
+  Biome*[T] = ref BiomeObj[T]
 
-proc newBiome[T](generator: (float) -> T): Biome[T] =
+proc newBiome*[T](generator: (float) -> T): Biome[T] =
   new(result)
   result.noise = newNoise()
   result.generator = generator
 
-proc getBiomeValue[T](biomes: seq[Biome[T]], x, y: int): T =
+proc getBiomeValue*[T](biomes: seq[Biome[T]], x, y: int): T =
   var
     map = initTable[float, Biome[T]]()
     values = newSeq[float]()
 
   for biome in biomes:
-    let value = getNoiseValue(biome.noise, x, y)
+    let value = getNoise(biome.noise, x, y, scale=2, jitter=0.1)
     map[value] = biome
     values.add(value)
 
@@ -74,32 +75,32 @@ proc handleEvents(window: RenderWindow) =
       window.close()
   sleep(500)
 
-let biomes = @[
-  newBiome[Color]((d:float) => color(int 255 * d, 0, 0)),
-  newBiome[Color]((d:float) => color(0, int 255 * d, 0)),
-  newBiome[Color]((d:float) => color(0, 0, int 255 * d)),
-  newBiome[Color]((d:float) => color(0, int 255 * d, int 255 * d)),
-  newBiome[Color]((d:float) => color(int 255 * d, 0, int 255 * d)),
-  newBiome[Color]((d:float) => color(int 255 * d, int 255 * d, 0)),
-  newBiome[Color]((d:float) => color(int 255 * d, int 255 * d, int 255 * d)),
-]
+# let biomes = @[
+#   newBiome[Color]((d:float) => color(int 255 * d, 0, 0)),
+#   newBiome[Color]((d:float) => color(0, int 255 * d, 0)),
+#   newBiome[Color]((d:float) => color(0, 0, int 255 * d)),
+#   newBiome[Color]((d:float) => color(0, int 255 * d, int 255 * d)),
+#   newBiome[Color]((d:float) => color(int 255 * d, 0, int 255 * d)),
+#   newBiome[Color]((d:float) => color(int 255 * d, int 255 * d, 0)),
+#   newBiome[Color]((d:float) => color(int 255 * d, int 255 * d, int 255 * d)),
+# ]
 
-let
-  title = "Demo of Biome Generation Using Noise"
-  size = (w: 800, h: 600)
-  mode = videoMode(cint size.w, cint size.h)
-  window = newRenderWindow(mode, title)
+# let
+#   title = "Demo of Biome Generation Using Noise"
+#   size = (w: 1024, h: 768)
+#   mode = videoMode(cint size.w, cint size.h)
+#   window = newRenderWindow(mode, title)
 
-  img = renderImage(size, (x, y) => getBiomeValue[Color](biomes, x, y))
-  tex = newTexture(img, rect(0, 0, size.w, size.h))
-  spr = newSprite(tex)
+#   img = renderImage(size, (x, y) => getBiomeValue[Color](biomes, x, y))
+#   tex = newTexture(img, rect(0, 0, size.w, size.h))
+#   spr = newSprite(tex)
 
-# save image to file
-discard img.saveToFile("biomes.png")
+# # save image to file
+# discard img.saveToFile("biomes.png")
 
-# draw the sprite to the screen
-window.draw(spr)
+# # draw the sprite to the screen
+# window.draw(spr)
 
-while window.open:
-  window.display()
-  handleEvents(window)
+# while window.open:
+#   window.display()
+#   handleEvents(window)

@@ -1,16 +1,20 @@
+import future
 import tables
 import json
 import macros
 import strutils
+import sequtils
 
 import sdl2
 import random
 
 import dadren/application
 import dadren/scenes
+import dadren/biomes
 import dadren/tilepacks
 import dadren/entities
 import dadren/tilemap
+import dadren/camera
 import dadren/utils
 
 
@@ -23,6 +27,26 @@ let templates = parseJson("""
    "Position": { },
    "Velocity": { },
    "Icon": {"rune": "maple"}
+ },
+ "water": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "water"}
+ },
+ "dirt": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "dirt"}
+ },
+ "grass": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "grass"}
+ },
+ "snow": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "snow"}
  }
 }
 """)
@@ -30,77 +54,84 @@ let templates = parseJson("""
 
 type
   GameTile* = ref object of Tile
-    entity: int
+    entity*: Entity
   TreeGenerator* = ref object of Generator
     entities: EntityManager
+    biomes: seq[Biome[Entity]]
   GameScene = ref object of Scene
     app: App
     tilepack: Tilepack
     tilemap: Tilemap
+    camera: Camera
     entities: EntityManager
 
-method newChunk*(generator: TreeGenerator, pos: utils.Point, size: Size): Chunk =
+method visibleTile*(t: GameTile): string =
+  if Icon in t.entity:
+    return t.entity.icon.rune
+
+method makeChunk*(generator: TreeGenerator, pos: utils.Point, size: Size): Chunk =
+  let
+    kinds = toSeq(generator.entities.templates.keys)
+
   result = newChunk()
-  for x in pos.x..(pos.x + size.w):
-    for y in pos.y..(pos.y + size.h):
-      let e = generator.entities.create("tree")
-      result.add((x, y), GameTile(entity: e.id))
+  for x in 0..size.w:
+    let rx = pos.x + x
+    for y in 0..size.h:
+      let ry = pos.y + y
+      result.add((x, y), GameTile(entity: generator.biomes.getBiomeValue(rx, ry)))
 
 proc newGameScene(app: App): GameScene =
+  let biome_min = 0.025
+  var entities = newEntityManager()
+  let
+    render_size = app.getLogicalSize()
+    generator = TreeGenerator(entities: entities, biomes: @[
+      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("water") else: entities.create("dirt"))),
+      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("tree") else: entities.create("dirt"))),
+      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("grass") else: entities.create("dirt"))),
+      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("snow") else: entities.create("dirt"))),
+    ])
+
   new(result)
   result.app = app
-  result.entities = newEntityManager()
-  let generator = TreeGenerator(entities: result.entities)
-  result.tilemap = generator.newTilemap((10, 10))
+  result.entities = entities
+  result.tilepack = app.resources.tilepacks.load("retrodays")
+  result.tilemap = newTilemap(generator, (8, 8))
+  result.camera = newCamera((0, 0), (render_size.w, render_size.h), result.tilepack)
+  result.camera.attach(result.tilemap)
+  result.entities.load(templates) # load entity templates from json
+
+converter scancode2uint8(x: Scancode): cint = cint(x)
+converter uint82bool(x: uint8):bool  = bool(x)
 
 method update(self: GameScene, t, dt: float) =
-  var
-    width: cint
-    height: cint
-  self.app.display.getLogicalSize(width, height)
+  let keys = getKeyboardState()
 
-  let
-    tile_size = self.tilepack.info.tile_size
-    max_width = float(width - tile_size.width)
-    max_height = float(height - tile_size.height)
+  if keys[SDL_SCANCODE_LEFT.cint]:
+    self.camera.move(-1, 0)
+  elif keys[SDL_SCANCODE_RIGHT.cint]:
+    self.camera.move(1, 0)
+  if keys[SDL_SCANCODE_UP.cint]:
+    self.camera.move(0, -1)
+  elif keys[SDL_SCANCODE_DOWN.cint]:
+    self.camera.move(0, 1)
 
-  for e in self.entities.has(Position, Velocity):
-    e.position.x += e.velocity.dx * dt
-    e.position.y += e.velocity.dy * dt
+proc handle_key(gs: GameScene, keysym: KeySym) =
+  case keysym.sym:
+    of K_LEFT: gs.camera.move(-1, 0)
+    of K_RIGHT: gs.camera.move(1, 0)
+    of K_UP: gs.camera.move(0, -1)
+    of K_DOwN: gs.camera.move(0, 1)
+    else: discard
 
-    if e.position.x < 0:
-      e.position.x = 0
-      e.velocity.dx *= -1
-
-    if e.position.y < 0:
-      e.position.y = 0
-      e.velocity.dy *= -1
-
-    if e.position.x >= max_width:
-      e.position.x = max_width
-      e.velocity.dx *= -1
-
-    if e.position.y >= max_height:
-      e.position.y = max_height
-      e.velocity.dy *= -1
+# method handle(self: GameScene, event: Event) =
+#   case event.kind:
+#     of KeyDown:
+#       self.handle_key(event.key.keysym)
+#     else: discard
 
 method draw(self: GameScene) =
-  for i in self.entities.has(Position, Icon):
-    self.app.display.render(self.tilepack, i.icon.rune,
-                             int(i.position.x),
-                             int(i.position.y))
-
-method enter(self: GameScene) =
-  # load the terrain texture atlas into game state
-  self.tilepack = self.app.resources.tilepacks.load("retrodays")
-  self.entities.load(templates) # load entity templates from json
-
-  for i in 0..500:
-    let tree = self.entities.create("tree")
-    tree.position.x = self.app.settings.resolution.width / 2
-    tree.position.y = self.app.settings.resolution.height / 2
-    tree.velocity.dx = rng.random(200) - 50
-    tree.velocity.dy = rng.random(200) - 50
+  self.camera.render(self.app.display)
 
 let
   app = newApp("settings.json")
