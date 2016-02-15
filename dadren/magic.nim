@@ -4,7 +4,7 @@ import strutils
 import json
 import marshal
 
-import dadren/meta
+import ./meta
 
 const MACRO_FORMAT_ERROR = "Improperly formatted invocation of `aggregate` macro. Check documentation for proper call syntax."
 

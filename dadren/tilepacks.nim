@@ -4,9 +4,9 @@ import marshal
 
 import sdl2
 
-import dadren/exceptions
-import dadren/tilesets
-import dadren/utils
+import ./exceptions
+import ./tilesets
+import ./utils
 
 type
   TilesetTable = Table[string, Tileset]
@@ -78,23 +78,23 @@ proc cacheLookups(table: TilesetTable): TilesetTable =
     for tile in tileset.info.tiles.keys():
       result[tile] = tileset
 
-proc load*(tsm: TilepackManager, name): Tilepack =
-  if tsm.registry.hasKey(name):
-    return tsm.registry[name]
+proc load*(tpm: TilepackManager, name): Tilepack =
+  if tpm.registry.hasKey(name):
+    return tpm.registry[name]
 
   let
-    tilepack_path = tsm.path / name
+    tilepack_path = tpm.path / name
     tilepack_data = loadTilepack(tilepack_path)
-    tileset_table = tsm.loadTilesets(tilepack_data)
+    tileset_table = tpm.loadTilesets(tilepack_data)
     tileset_tiles = tileset_table.cacheLookups()
   result = newTilepack(tilepack_data.info, tileset_table, tileset_tiles)
-  tsm.registry[name] = result
+  tpm.registry[name] = result
 
-proc get*(tsm: TilepackManager, name): Tilepack =
-  if not tsm.registry.hasKey(name):
+proc get*(tpm: TilepackManager, name): Tilepack =
+  if not tpm.registry.hasKey(name):
     let msg = "No tilepack with name `" & name & "` is loaded."
     raise newException(NoSuchResourceError, msg)
-  tsm.registry[name]
+  tpm.registry[name]
 
 proc render*(display: RendererPtr, tilepack: Tilepack, name: string, dx, dy: int) =
   let tileset = tilepack.tiles[name]

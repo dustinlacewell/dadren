@@ -7,11 +7,11 @@ import strutils
 import random
 from sdl2 import RendererPtr
 
-import dadren/chunks
-import dadren/tilemap
-import dadren/tilesets
-import dadren/utils
-import dadren/tilepacks
+import ./chunks
+import ./tilemap
+import ./tilesets
+import ./utils
+import ./tilepacks
 
 
 type
@@ -51,7 +51,6 @@ proc render*[T](camera: Camera[T], display: RendererPtr) =
 
     px = camera.position.x
     py = camera.position.y
-
 
   for x in 0..camera.maxWidth:
     let sx = px + (x * tw) # horizontal screen position

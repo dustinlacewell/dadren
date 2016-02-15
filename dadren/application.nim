@@ -1,14 +1,25 @@
+#
+## The application module contains the central type to the Dadren engine the `AppObj` and its Ref type `App`.
+
+## The App serves a few primary roles for the game author:
+
+## - Loading configuration and assets
+## - Running the main loop
+## - Calling user event handlers
+
+## The App is initialized by passing the filename of a settings file which contains the needed information.
+
 import os
 import future
 import strutils
 
 import sdl2
 
-import dadren/settings
-import dadren/resources
-import dadren/clock
-import dadren/scenes
-import dadren/utils
+import ./settings
+import ./resources
+import ./clock
+import ./scenes
+import ./utils
 
 type
   AppSettings = object

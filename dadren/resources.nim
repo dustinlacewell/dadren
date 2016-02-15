@@ -3,11 +3,11 @@ import tables
 
 import sdl2, sdl2/image
 
-import dadren/textures
-import dadren/atlases
-import dadren/tilepacks
-import dadren/tilesets
-import dadren/exceptions
+import ./textures
+import ./atlases
+import ./tilepacks
+import ./tilesets
+import ./exceptions
 
 type
   ResourceManagerObj = object

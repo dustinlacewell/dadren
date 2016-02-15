@@ -1,6 +1,6 @@
 import tables
 
-import dadren/utils
+import ./utils
 
 type
   Tile* = ref object of RootObj

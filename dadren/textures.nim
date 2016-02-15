@@ -3,8 +3,8 @@ import tables
 
 import sdl2, sdl2/image
 
-import dadren/utils
-import dadren/exceptions
+import ./utils
+import ./exceptions
 
 proc loadSurface(window: WindowPtr, filename: string): SurfacePtr =
   if not existsFile(filename):

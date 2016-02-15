@@ -2,9 +2,9 @@ import sdl2
 
 import tables
 
-import dadren/atlases
-import dadren/exceptions
-import dadren/utils
+import ./atlases
+import ./exceptions
+import ./utils
 
 type
   TileTable = Table[string, utils.Point]

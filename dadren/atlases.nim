@@ -4,9 +4,9 @@ import tables
 
 import sdl2, sdl2/image
 
-import dadren/textures
-import dadren/exceptions
-import dadren/utils
+import ./textures
+import ./exceptions
+import ./utils
 
 type
   AtlasInfo* = object

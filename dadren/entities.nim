@@ -3,7 +3,7 @@ import json
 import marshal
 import strutils
 
-import dadren/magic
+import ./magic
 
 type
   Position* = object

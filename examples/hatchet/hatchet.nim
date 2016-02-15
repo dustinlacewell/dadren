@@ -11,7 +11,6 @@ import random
 
 import dadren/application
 import dadren/scenes
-import dadren/biomes
 import dadren/tilepacks
 import dadren/chunks
 import dadren/generators

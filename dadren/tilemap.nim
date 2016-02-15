@@ -4,8 +4,8 @@ import math
 import strutils
 import sequtils
 
-import dadren/chunks
-import dadren/generators
+import ./chunks
+import ./generators
 
 type
   Tilemap*[T] = ref object

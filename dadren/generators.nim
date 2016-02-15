@@ -5,8 +5,8 @@ import tables
 import random
 import perlin
 
-import dadren/chunks
-import dadren/utils
+import ./chunks
+import ./utils
 
 proc getJitter(j: float): float = random.random(j) - (j / 2.0)
 
