@@ -1,5 +1,6 @@
 import os
 import tables
+import strutils
 
 import sdl2, sdl2/image
 
@@ -10,11 +11,22 @@ proc loadSurface(window: WindowPtr, filename: string): SurfacePtr =
   if not existsFile(filename):
     let msg = "The image `" & filename & "` does not exist."
     raise newException(InvalidResourceError, msg)
-  let
-    surface = image.load(filename)
-    format = window.getSurface().format
+
+  let surface = image.load(filename)
+  if surface == nil:
+    let
+      error = getError()
+      msg = "The image `$1` could not be loaded: $2"
+    raise newException(InvalidResourceError, msg.format(filename, error))
+
+  let screen_surface = window.getSurface()
+  if screen_surface == nil:
+    let
+      error = getError()
+      msg = "The image `$1` could not be optimized for display: $2"
+    raise newException(InvalidResourceError, msg.format(filename, error))
   # return the screen-converted surface
-  convertSurface(surface, format, 0)
+  convertSurface(surface, screen_surface.format, 0)
 
 proc loadTexture*(display: RendererPtr, surface: SurfacePtr): TexturePtr =
   display.createTextureFromSurface(surface)
