@@ -2,6 +2,7 @@ import future
 import tables
 import json
 import macros
+import math
 import strutils
 import sequtils
 
@@ -12,6 +13,8 @@ import dadren/application
 import dadren/scenes
 import dadren/biomes
 import dadren/tilepacks
+import dadren/chunks
+import dadren/generators
 import dadren/entities
 import dadren/tilemap
 import dadren/camera
@@ -23,30 +26,95 @@ var rng = initMersenneTwister(urandom(2500))
 # generate test json entity templates
 let templates = parseJson("""
 {
- "tree": {
-   "Position": { },
-   "Velocity": { },
-   "Icon": {"rune": "maple"}
- },
- "water": {
-   "Position": { },
-   "Velocity": { },
-   "Icon": {"rune": "water"}
- },
  "dirt": {
    "Position": { },
    "Velocity": { },
    "Icon": {"rune": "dirt"}
+ },
+ "snow": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "snow"}
  },
  "grass": {
    "Position": { },
    "Velocity": { },
    "Icon": {"rune": "grass"}
  },
- "snow": {
+ "snowy_grass": {
    "Position": { },
    "Velocity": { },
-   "Icon": {"rune": "snow"}
+   "Icon": {"rune": "snowy_grass"}
+ },
+ "road": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "road"}
+ },
+ "road_line": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "road_line"}
+ },
+ "water": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "water"}
+ },
+ "deep_water": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "deep_water"}
+ },
+ "ice": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "ice"}
+ },
+ "stone": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "stone"}
+ },
+ "marsh": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "marsh"}
+ },
+ "little_bluestem": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "little_bluestem"}
+ },
+ "sweetgrass": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "sweetgrass"}
+ },
+ "big_bluestem": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "big_bluestem"}
+ },
+ "young_alder": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "young_alder"}
+ },
+ "mature_alder": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "mature_alder"}
+ },
+ "maple": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "maple"}
+ },
+ "larch_bolete": {
+   "Position": { },
+   "Velocity": { },
+   "Icon": {"rune": "larch_bolete"}
  }
 }
 """)
@@ -54,52 +122,82 @@ let templates = parseJson("""
 
 type
   GameTile* = ref object of Tile
-    entity*: Entity
-  TreeGenerator* = ref object of Generator
-    entities: EntityManager
-    biomes: seq[Biome[Entity]]
+    terrain: Entity
+    objects: seq[Entity]
   GameScene = ref object of Scene
     app: App
     tilepack: Tilepack
-    tilemap: Tilemap
-    camera: Camera
+    tilemap: Tilemap[GameTile]
+    camera: Camera[GameTile]
     entities: EntityManager
 
-method visibleTile*(t: GameTile): string =
-  if Icon in t.entity:
-    return t.entity.icon.rune
+proc newGameTile(terrain: Entity, objects: seq[Entity] = @[]): GameTile =
+  new(result)
+  result.terrain = terrain
+  result.objects = objects
 
-method makeChunk*(generator: TreeGenerator, pos: utils.Point, size: Size): Chunk =
-  let
-    kinds = toSeq(generator.entities.templates.keys)
-
-  result = newChunk()
-  for x in 0..size.w:
-    let rx = pos.x + x
-    for y in 0..size.h:
-      let ry = pos.y + y
-      result.add((x, y), GameTile(entity: generator.biomes.getBiomeValue(rx, ry)))
+method tile_name*(self: GameTile): string =
+  if self.objects.len == 0:
+    return self.terrain.icon.rune
+  else:
+    for obj in self.objects:
+      if Icon in obj:
+        return obj.icon.rune
 
 proc newGameScene(app: App): GameScene =
-  let biome_min = 0.025
   var entities = newEntityManager()
+  entities.load(templates)
+
   let
     render_size = app.getLogicalSize()
-    generator = TreeGenerator(entities: entities, biomes: @[
-      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("water") else: entities.create("dirt"))),
-      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("tree") else: entities.create("dirt"))),
-      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("grass") else: entities.create("dirt"))),
-      newBiome[Entity]((d: float) => (if d > biome_min: entities.create("snow") else: entities.create("dirt"))),
-    ])
+    chunk_size = (8, 8)
+    camera_position = (0, 0)
+    camera_size = render_size
 
   new(result)
   result.app = app
   result.entities = entities
   result.tilepack = app.resources.tilepacks.load("retrodays")
-  result.tilemap = newTilemap(generator, (8, 8))
-  result.camera = newCamera((0, 0), (render_size.w, render_size.h), result.tilepack)
+
+  let
+    marsh_generator = newRangedGenerator(@[
+      (1, newWeightedGenerator(@[
+        (2, newStaticGenerator(GameTile(terrain: entities.create("water")))),
+        (2, newStaticGenerator(GameTile(terrain: entities.create("marsh")))),
+        (1, newStaticGenerator(GameTile(terrain: entities.create("stone")))),
+        (1, newStaticGenerator(GameTile(terrain: entities.create("grass")))),
+      ])),
+      (2, newStaticGenerator(GameTile(terrain: entities.create("water")))),
+      (2, newStaticGenerator(GameTile(terrain: entities.create("deep_water")))),
+    ], child=true)
+
+    forest_generator = newRangedGenerator(@[
+      (50, newWeightedGenerator(@[
+        (10, newStaticGenerator(GameTile(terrain: entities.create("dirt")))),
+        (2, newStaticGenerator(GameTile(terrain: entities.create("grass")))),
+      ])),
+      (100, newWeightedGenerator(@[
+        (10, newStaticGenerator(GameTile(terrain: entities.create("grass")))),
+        (2, newStaticGenerator(GameTile(terrain: entities.create("sweetgrass")))),
+        (1, newStaticGenerator(GameTile(terrain: entities.create("big_bluestem")))),
+        (1, newStaticGenerator(GameTile(terrain: entities.create("little_bluestem")))),
+      ])),
+      (250, newWeightedGenerator(@[
+        (10, newStaticGenerator(GameTile(terrain: entities.create("sweetgrass")))),
+        (2, newStaticGenerator(GameTile(terrain: entities.create("grass")))),
+        (2, newStaticGenerator(GameTile(terrain: entities.create("maple")))),
+        (1, newStaticGenerator(GameTile(terrain: entities.create("mature_alder")))),
+        (1, newStaticGenerator(GameTile(terrain: entities.create("young_alder")))),
+      ])),
+    ], child=true)
+
+  result.tilemap = newTilemap(chunk_size, newBillowGenerator(@[
+    marsh_generator, forest_generator
+  ], scale=4.0, jitter=0.05))
+
+
+  result.camera = newCamera[GameTile](camera_position, camera_size, result.tilepack)
   result.camera.attach(result.tilemap)
-  result.entities.load(templates) # load entity templates from json
 
 converter scancode2uint8(x: Scancode): cint = cint(x)
 converter uint82bool(x: uint8):bool  = bool(x)

@@ -15,7 +15,8 @@
                 "dirt", "snow",
                 "grass", "snowy_grass",
                 "road", "road_line",
-                "water", "ice",
+                "water", "deep_water",
+                "ice", "deep_ice",
                 "stone", "marsh"
             ]
         },

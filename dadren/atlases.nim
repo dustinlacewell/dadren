@@ -47,7 +47,7 @@ proc calculateAtlasSize(texture: Texture, tile_size: Size): Size =
 proc validateTileSize(info: AtlasInfo, texture: Texture) =
   # ensure the tile_size evenly divides into the Texture
   if (texture.info.size.w %% info.tile_size.w != 0 or
-      texture.info.size.h %% info.tile_size.h !=0):
+      texture.info.size.h %% info.tile_size.h != 0):
     let msg = "Atlas dimensions for `" & info.name & "` are incompatible with associated texture."
     raise newException(InvalidResourceError, msg)
 
