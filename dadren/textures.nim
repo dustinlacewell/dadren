@@ -25,7 +25,7 @@ proc loadTexture*(display: RendererPtr, surface: SurfacePtr): TexturePtr =
     let
       error = getError()
       msg = "Texture could not be loaded from surface: $1"
-      raise newException(InvalidResourceError, msg.format(error))
+    raise newException(InvalidResourceError, msg.format(error))
 
 type
   TextureInfo* = object
