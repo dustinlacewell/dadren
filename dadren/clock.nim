@@ -23,7 +23,8 @@ proc tick*(clock: Clock) =
   clock.accumulator += tick_time
 
 proc drain*(clock: Clock, handler: (float, float)->void) =
-  while clock.accumulator >= clock.step:
-    handler(clock.total, clock.step)
-    clock.accumulator -= clock.step
-    clock.total += clock.step
+  handler(clock.total, clock.step)
+  # while clock.accumulator >= clock.step:
+  #   handler(clock.total, clock.step)
+  #   clock.accumulator -= clock.step
+  #   clock.total += clock.step
