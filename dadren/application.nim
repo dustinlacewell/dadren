@@ -76,7 +76,7 @@ proc newApp*(settings_filename: string): App =
 
   let render_flags = result.settings.getDisplayFlags()
 
-  result.clock = newClock(0.01666666 * 2.0)
+  result.clock = newClock(1 / 60)
   result.scenes = newSceneManager()
   result.window = createWindow(result.settings.title, 0, 0, dm.w, dm.h,
                                (SDL_WINDOW_SHOWN or

@@ -1,30 +1,25 @@
 import future
 import times
+import os
 import strutils
 
 type
   ClockObj = object
-    total, current: float
-    accumulator, step: float
+    step: float
+    total, current*, delta*: float
   Clock* = ref ClockObj
 
 proc newClock*(step: float): Clock =
   new(result)
-  result.total = 0.0
-  result.accumulator = 0.0
-  result.current = epochTime()
   result.step = step
+  result.total = 0.0
+  result.delta = 0.0
+  result.current = epochTime()
 
 proc tick*(clock: Clock) =
-  let
-    new_time = epochTime()
-    tick_time = new_time - clock.current
+  let new_time = epochTime()
+  clock.delta = new_time - clock.current
   clock.current = new_time
-  clock.accumulator += tick_time
 
-proc drain*(clock: Clock, handler: (float, float)->void) =
-  handler(clock.total, clock.step)
-  # while clock.accumulator >= clock.step:
-  #   handler(clock.total, clock.step)
-  #   clock.accumulator -= clock.step
-  #   clock.total += clock.step
+  if clock.delta < clock.step:
+    sleep(int((clock.step - clock.delta) * 1000))
