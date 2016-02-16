@@ -65,3 +65,4 @@ proc render*[T](camera: Camera[T], display: RendererPtr) =
 proc move*[T](camera: Camera[T], x, y: int) =
   camera.focus.x += x
   camera.focus.y += y
+  camera.map.chunks = initTable[Point, Chunk]()

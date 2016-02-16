@@ -10,7 +10,7 @@ import ./generators
 type
   Tilemap*[T] = ref object
     chunk_size: Size
-    chunks: Table[Point, Chunk]
+    chunks*: Table[Point, Chunk]
     generator: Generator[T]
 
 proc newTilemap*[T](chunk_size: Size, generator: Generator[T]): Tilemap[T] =
