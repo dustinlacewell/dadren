@@ -12,21 +12,12 @@ proc loadSurface(window: WindowPtr, filename: string): SurfacePtr =
     let msg = "The image `" & filename & "` does not exist."
     raise newException(InvalidResourceError, msg)
 
-  let surface = image.load(filename)
-  if surface == nil:
+  result = image.load(filename)
+  if result == nil:
     let
       error = getError()
       msg = "The image `$1` could not be loaded: $2"
     raise newException(InvalidResourceError, msg.format(filename, error))
-
-  let screen_surface = window.getSurface()
-  if screen_surface == nil:
-    let
-      error = getError()
-      msg = "The image `$1` could not be optimized for display: $2"
-    raise newException(InvalidResourceError, msg.format(filename, error))
-  # return the screen-converted surface
-  convertSurface(surface, screen_surface.format, 0)
 
 proc loadTexture*(display: RendererPtr, surface: SurfacePtr): TexturePtr =
   display.createTextureFromSurface(surface)
@@ -89,8 +80,10 @@ proc load*(tm: TextureManager, name, filename: string): Texture =
     result = newTexture(info, handle)
     tm.registry[name] = result
   except:
-    let msg = "The texture image `" & filename & "` failed to load."
-    raise newException(InvalidResourceError, msg)
+    let
+      error = getError()
+      msg = "The texture image `$1` failed to load: $2"
+    raise newException(InvalidResourceError, msg.format(filename, error))
 
 proc get*(tm: TextureManager, name: string): Texture =
   if not tm.registry.hasKey(name):

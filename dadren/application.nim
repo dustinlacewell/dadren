@@ -25,6 +25,8 @@ type
   AppSettings = object
     title*: string
     scale*: float
+    vsync: bool
+    accelerated: bool
     resolution*: Resolution
     tilepack_path*: string
   AppObj* = object
@@ -55,6 +57,15 @@ proc getLogicalSize*(app: App): Size =
   app.display.getLogicalSize(width, height)
   (width.int, height.int)
 
+proc getDisplayFlags(settings: AppSettings): cint =
+  if settings.accelerated:
+    result = result or Renderer_Accelerated
+  else:
+    result = result or Renderer_Software
+
+  if settings.vsync:
+    result = result or Renderer_PresentVsync
+
 proc newApp*(settings_filename: string): App =
   sdl2.init(INIT_EVERYTHING)
   var dm = DisplayMode()
@@ -62,16 +73,16 @@ proc newApp*(settings_filename: string): App =
 
   new(result)
   result.settings = loadSettings[AppSettings](settings_filename)
+
+  let render_flags = result.settings.getDisplayFlags()
+
   result.clock = newClock(0.01666666 * 2.0)
   result.scenes = newSceneManager()
   result.window = createWindow(result.settings.title, 0, 0, dm.w, dm.h,
                                (SDL_WINDOW_SHOWN or
                                 SDL_WINDOW_ALLOW_HIGHDPI or
                                 SDL_WINDOW_RESIZABLE))
-  result.display = createRenderer(result.window, -1,
-                                  (Renderer_Accelerated or
-                                   Renderer_PresentVsync or
-                                   Renderer_TargetTexture))
+  result.display = createRenderer(result.window, -1, render_flags)
   result.resources = newResourceManager(result.window,
                                         result.display,
                                         result.settings.tilepack_path)
