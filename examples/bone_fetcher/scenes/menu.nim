@@ -9,6 +9,8 @@ import dadren/utils
 
 import misc/bfutils
 
+ttfInit()
+
 type
   MenuScene = ref object of Scene
     app: App
@@ -21,6 +23,9 @@ proc menuScene*(app: App): MenuScene =
     camera_position = (0, 0)
     camera_size = render_size
     font = openFont("assets/OpenSans-Regular.ttf", 14)
+
+  if font == nil:
+    quit "Font is nil"
 
   new(result)
   result.app = app
@@ -43,15 +48,13 @@ method update*(self: MenuScene, t, dt: float) =
     system.quit()
 
 method draw*(self: MenuScene) =
-  var color: Color = color(255, 255, 255, 255)
-  var surface: SurfacePtr = renderText(self.font, "Play", color, color)
+  var fg: Color = color(255, 0, 255, 255)
+  var bg: Color = color(255, 255, 0, 255)
+  var surface: SurfacePtr = renderText(self.font, "Play", fg, bg)
   var texturePtr: TexturePtr = self.app.display.loadTexture(surface)
 
-  var dst: sdl2.Rect = (0.cint,
-                        0.cint,
-                        200.cint,
-                        50.cint)
+  var dst: sdl2.Rect = (0.cint, 0.cint, 0.cint, 0.cint)
+
+  sdl2.queryTexture(texturePtr, nil, nil, addr dst.w, addr dst.h)
 
   self.app.display.copy(texturePtr, cast[ptr sdl2.Rect](nil), dst.addr)
-
-  #self.app.display.render(self.tilepack, "mature_alder", 5, 5)
