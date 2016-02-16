@@ -194,6 +194,10 @@ proc newGameScene(app: App): GameScene =
     marsh_generator, forest_generator
   ], scale=4.0, jitter=0.05))
 
+  # result.tilemap = newTilemap(chunk_size, newBillowGenerator(@[
+  #   newStaticGenerator(GameTile(terrain: entities.create("grass"))),
+  #   newStaticGenerator(GameTile(terrain: entities.create("water"))),
+  # ]))
 
   result.camera = newCamera[GameTile](camera_position, camera_size, result.tilepack)
   result.camera.attach(result.tilemap)

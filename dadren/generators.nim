@@ -87,21 +87,24 @@ proc newRangedGenerator*[T](ranges: seq[(int, Generator[T])],
 
 type Billow[T] = tuple[noise: Noise, gen: Generator[T]]
 
+
+
 proc newBillowGenerator*[T](generators: seq[Generator[T]], scale=1.0, jitter=0.0): Generator[T] =
-  var choices = newSeq[Billow[T]]()
+  var
+    choices = newSeq[Billow[T]]()
+    values = newSeq[float](generators.len)
+    map = initTable[float, Billow[T]]()
 
   for gen in generators:
     choices.add((noise: newNoise(), gen: gen))
 
   SimpleGenerator() do (x, y: int)-> T:
-    var
-      map = initTable[float, Billow[T]]()
-      values = newSeq[float]()
-
+    var i = 0
     for billow in choices:
       let value = billow.noise.getNoise(x, y, scale, jitter)
       map[value] = billow
-      values.add(value)
+      values[i] = value
+      i += 1
 
     values.sort(cmp, Descending)
     let delta = values[0] - values[1]
