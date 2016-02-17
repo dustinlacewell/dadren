@@ -19,9 +19,6 @@ import dadren/tilemap
 import dadren/camera
 import dadren/utils
 
-
-var rng = initMersenneTwister(urandom(2500))
-
 # generate test json entity templates
 let templates = parseJson("""
 {
