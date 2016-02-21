@@ -10,6 +10,6 @@ Dadren's Documentation
 
 .. include:: about.rst
 .. include:: autodocs.rst
+.. include:: overview.rst
 .. include:: installation.rst
 .. include:: examples.rst
-.. include:: overview.rst
