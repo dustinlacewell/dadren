@@ -71,10 +71,11 @@ proc loadPack*(tm: TilesetManager, filename: string) =
     let info = to[TilesetInfo]($asset_data)
     var atlases = newSeq[NamedAtlas]()
     for atlas_info in info.atlases:
-      let new_atlas = tm.atlases.load(name, atlas_info.filename,
-                                      info.width, info.height,
-                                      atlas_info.tiles,
-                                      info.description, info.authors)
+      let new_atlas = tm.atlases.load(
+        atlas_info.filename, atlas_info.filename,
+        info.width, info.height,
+        atlas_info.tiles,
+        info.description, info.authors)
       atlases.add(new_atlas)
     tm.registry[name] = Tileset(info:info, atlases:atlases)
 

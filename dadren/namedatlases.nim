@@ -95,6 +95,6 @@ proc render*(display: RendererPtr, atlas: NamedAtlas, name: string, dx, dy: int)
   for i in 0..atlas.info.names.len - 1:
     if atlas.info.names[i] == name:
       display.render(atlas.atlas, i, dx, dy)
-
+      return
 
 

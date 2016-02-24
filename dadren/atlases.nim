@@ -116,29 +116,41 @@ proc get*(am: AtlasManager, name: string): Atlas =
     raise newException(NoSuchResourceError, msg)
   am.registry[name]
 
-proc calculateAtlasSize(texture: Texture, width, height: int): Size =
-  result.w = texture.size.w /% width
-  result.h = texture.size.h /% height
+proc calculateAtlasSize(total_width, total_height,
+                        region_width, region_height: int): Size =
+  result.w = total_width /% region_width
+  result.h = total_height /% region_height
 
-proc calculateRegionPosition*(atlas: Atlas, n): tuple[x, y: int] =
-  ## Return the pixel position of indexed sub-region `n`
-  let atlas_size = calculateAtlasSize(atlas.texture,
-                                      atlas.info.width,
-                                      atlas.info.height)
-  ((if n > 0: n %% atlas_size.w else: 0),
-   (if n > 0: n /% atlas_size.h else: 0))
+proc calculateRegionPosition*(index,
+                              total_width, total_height,
+                              region_width, region_height: int): tuple[x, y: int] =
+  ## Return the region position of indexed sub-region `n`
+  let atlas_size = calculateAtlasSize(total_width, total_height,
+                                      region_width, region_height)
+  ((if index > 0: index %% atlas_size.w else: 0),
+   (if index > 0: index /% atlas_size.h else: 0))
 
-proc render*(display: RendererPtr, atlas: Atlas, tx, ty, dx, dy: int) =
-  ## Render the sub-region tx, ty of atlas to the destination dx, dy of display
-  let
-    sx = tx *% atlas.info.width
-    sy = ty *% atlas.info.height
+proc calculatePixelPosition*(region_x, region_y,
+                             region_width, region_height): tuple[x, y: int] =
+  (x: region_x *% region_width, y: region_y *% region_height)
 
-  display.render(atlas.texture, sx, sy, dx, dy,
+proc render*(display: RendererPtr, atlas: Atlas, rx, ry, dx, dy: int) =
+  ## Render the sub-region rx, ry of atlas to the destination dx, dy of display
+  let pixel_pos = calculatePixelPosition(rx, ry,
+                                              atlas.info.width,
+                                              atlas.info.height)
+
+  display.render(atlas.texture,
+                 pixel_pos.x,
+                 pixel_pos.y,
+                 dx, dy,
                  atlas.info.width,
                  atlas.info.height)
 
 proc render*(display: RendererPtr, atlas: Atlas, n, dx, dy: int) =
   ## Render the indexed sub-region n of atlas to the destination dx, dy of display
-  let (tx, ty) = atlas.calculateRegionPosition(n)
+  let
+    texture_sz = atlas.texture.size
+    (tx, ty) = calculateRegionPosition(
+      n, texture_sz.w, texture_sz.h, atlas.info.width, atlas.info.height)
   display.render(atlas, tx, ty, dx, dy)
