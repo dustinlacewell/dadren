@@ -1,72 +1,93 @@
+## Overview
+## ========
+## A **Tileset** acts as a single registry for accessing tiles by name across two or more NamedAtlases. All included NamedAtlases must have the same partition dimensions. As they are loaded, tiles will overwrite any existing tiles with the same name.
+
+import os
+import tables
+import marshal
+import json
+import strutils
+
 import sdl2
 
-import tables
-
-import ./atlases
 import ./exceptions
+import ./namedatlases
+import ./packs
 import ./utils
 
 type
-  TileTable = Table[string, utils.Point]
+  AtlasTable = Table[string, NamedAtlas]
+
+  TilesetAtlasInfo* = object
+    ## Used for deserializing a single Tileset Atlas from resource-packs
+    filename*: string ## path on disk of source image
+    tiles*: seq[string] ## a list of tile names
 
   TilesetInfo = object
-    name*, filename*: string
-    tiles*: TileTable
+    ## Used for deserializing TilesetAssets from resource-packs
+    width*: int ## width of tiles
+    height*: int ## height of tiles
+    atlases*: seq[TilesetAtlasInfo] ## all included TilesetAtlasAssets
+    name*: string ## name of the Atlas in an AtlasManager
+    description*: string ## description of the Atlas
+    authors*: seq[string] ## authors of the Atlas
 
-  TilesetObj = object
+  Tileset* = ref object
     info*: TilesetInfo
-    atlas: Atlas
-  Tileset* = ref TilesetObj
+    atlases*: seq[NamedAtlas]
 
-  TilesetManagerObj = object
-    atlases: AtlasManager
-    registry: Table[string, Tileset]
-  TilesetManager* = ref TilesetManagerObj
+  TilesetManager* = ref object
+    atlases*: NamedAtlasManager
+    registry*: Table[string, Tileset]
 
-proc newTilesetInfo*(name, filename: string, tiles: TileTable): TilesetInfo =
-  result.name = name
-  result.filename = filename
-  result.tiles = tiles
-
-proc newTileset*(info: TilesetInfo, atlas: Atlas): Tileset =
+proc newTilesetManager*(window: WindowPtr, display:RendererPtr): TilesetManager =
   new(result)
-  result.info = info
-  result.atlas = atlas
-
-proc newTilesetManager*(atlases: AtlasManager): TilesetManager =
-  new(result)
-  result.atlases = atlases
+  result.atlases = newNamedAtlasManager(window, display)
   result.registry = initTable[string, Tileset]()
 
-proc getTileTable*(atlas: Atlas, tiles: seq[string]): TileTable =
-  result = initTable[string, utils.Point]()
-  var i = 0
-  for tile in tiles:
-    result[tile] = atlas.calculateTilePosition(i)
-    i = i + 1
+proc loadPack*(tm: TilesetManager, filename: string) =
+  ## Load a resource-pack of Tilesets. Assets inside of a Tilesets resource-pack
+  ## should be unmarshalable by the **TilesetInfo** type.
+  ##
+  ## **Example TilesetInfo JSON**
+  ##
+  ## .. code-block:: nimrod
+  ##    "example_tileset": {
+  ##      "description": "A texture used as an example",
+  ##      "authors": ["foo", "bar"]
+  ##      "width": 32, "height": 32,
+  ##      "atlases": [
+  ##        {
+  ##          "filename": "tilesets/terrain.png",
+  ##          "tiles": ["dirt", "stone", "water", "ice"]
+  ##        },
+  ##        {
+  ##          "filename": "tilesets/plants.png",
+  ##          "tiles": ["bush", "grass", "tree", "cat-tail"]
+  ##        }
+  ##    }
+  let pack = loadPack(filename)
+  for name, asset_data in pack:
+    let info = to[TilesetInfo]($asset_data)
+    var atlases = newSeq[NamedAtlas]()
+    for atlas_info in info.atlases:
+      let new_atlas = tm.atlases.load(name, atlas_info.filename,
+                                      info.width, info.height,
+                                      atlas_info.tiles,
+                                      info.description, info.authors)
+      atlases.add(new_atlas)
+    tm.registry[name] = Tileset(info:info, atlases:atlases)
 
-proc load*(tmm: TilesetManager,
-           name, filename: string,
-           t_width, t_height: int,
-           tiles: seq[string]): Tileset =
-  if tmm.registry.hasKey(name):
-    return tmm.registry[name]
-
-  let
-    atlas = tmm.atlases.load(name, filename, t_width, t_height)
-    tile_table = atlas.getTileTable(tiles)
-    info = newTilesetInfo(name, filename, tile_table)
-  result = newTileset(info, atlas)
-  tmm.registry[name] = result
-
-proc get*(tmm: TilesetManager, name: string): Tileset =
-  if not tmm.registry.hasKey(name):
-    let msg = "No tileset with name `" & name & "` is loaded."
-    raise newException(NoSuchResourceError, msg)
-  tmm.registry[name]
+proc get*(tm: TilesetManager, name): Tileset =
+  if not tm.registry.hasKey(name):
+    let msg = "No Tileset with name `$1` is loaded."
+    raise newException(NoSuchResourceError, msg.format(name))
+  tm.registry[name]
 
 proc render*(display: RendererPtr, tileset: Tileset, name: string, dx, dy: int) =
-  let (tx, ty) = tileset.info.tiles[name]
-  display.render(tileset.atlas, tx, ty, dx, dy)
+  for atlas in tileset.atlases:
+    if name in atlas.info.names:
+      display.render(atlas, name, dx, dy)
+      return
 
 

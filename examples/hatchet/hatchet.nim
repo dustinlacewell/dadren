@@ -12,7 +12,7 @@ import random
 
 import dadren/application
 import dadren/scenes
-import dadren/tilepacks
+import dadren/tilesets
 import dadren/chunks
 import dadren/generators
 import dadren/tilemap
@@ -135,7 +135,7 @@ type
     objects: seq[Entity]
   GameScene = ref object of Scene
     app: App
-    tilepack: Tilepack
+    tileset: Tileset
     tilemap: Tilemap[GameTile]
     camera: Camera[GameTile]
     entities: EntityManager
@@ -156,6 +156,8 @@ method tile_name*(self: GameTile): string =
 proc newGameScene(app: App): GameScene =
   var entities = newEntityManager()
   entities.load(templates)
+  app.resources.tilesets.loadPack(app.settings.tilepack_path)
+  let tileset = app.resources.tilesets.get("retrodays")
 
   let
     render_size = app.getLogicalSize()
@@ -166,7 +168,7 @@ proc newGameScene(app: App): GameScene =
   new(result)
   result.app = app
   result.entities = entities
-  result.tilepack = app.resources.tilepacks.load("retrodays")
+
 
   let
     marsh_generator = newRangedGenerator(@[
@@ -209,7 +211,7 @@ proc newGameScene(app: App): GameScene =
   #   newStaticGenerator(GameTile(terrain: entities.create("water"))),
   # ]))
 
-  result.camera = newCamera[GameTile](camera_position, camera_size, result.tilepack)
+  result.camera = newCamera[GameTile](camera_position, camera_size, tileset)
   result.camera.attach(result.tilemap)
 
 converter scancode2uint8(x: Scancode): cint = cint(x)

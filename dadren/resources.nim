@@ -5,7 +5,7 @@ import sdl2, sdl2/image
 
 import ./textures
 import ./atlases
-import ./tilepacks
+import ./namedatlases
 import ./tilesets
 import ./exceptions
 
@@ -15,8 +15,8 @@ type
     display*: RendererPtr
     textures*: TextureManager
     atlases*: AtlasManager
+    namedatlases*: NamedAtlasManager
     tilesets*: TilesetManager
-    tilepacks*: TilepackManager
   ResourceManager* = ref ResourceManagerObj
 
 proc newResourceManager*(window: WindowPtr,
@@ -26,9 +26,9 @@ proc newResourceManager*(window: WindowPtr,
   result.window = window
   result.display = display
   result.textures = newTextureManager(window, display)
-  result.atlases = newAtlasManager(result.textures)
-  result.tilesets = newTilesetManager(result.atlases)
-  result.tilepacks = newTilepackManager(result.tilesets, tileset_path)
+  result.atlases = newAtlasManager(window, display)
+  result.namedatlases = newNamedAtlasManager(window, display)
+  result.tilesets = newTilesetManager(window, display)
 
 proc destroy*(rm: ResourceManager) =
   rm.display = nil

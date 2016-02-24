@@ -1,12 +1,9 @@
-
 import future
 import sequtils
 import tables
+import unittest
 
 import random
-import sdl2, sdl2/image
-
-import unittest
 
 type
   Point* = tuple[x, y: int]
