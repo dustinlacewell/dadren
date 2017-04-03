@@ -26,7 +26,7 @@ proc makeChunk*[T](map: Tilemap[T], pos: Point, size: Size): Chunk =
     ty = pos.y * size.h
   for x in 0..size.w:
     for y in 0..size.h:
-      result.add((x, y), map.generator(tx + x, ty + y))
+      result.add((x, y), map.generator.resolve(tx + x, ty + y))
 
 proc getChunk(tm: Tilemap, pos: Point): Chunk =
   if pos notin tm.chunks:

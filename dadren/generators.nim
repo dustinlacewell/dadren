@@ -26,7 +26,7 @@ type
       of gtNoise:
         noise_callback*: proc(x, y: int, noise: float): T
 
-proc `()`*[T](gen: Generator[T], x, y: int, noise = -1.0): T =
+proc resolve*[T](gen: Generator[T], x, y: int, noise = -1.0): T =
   case gen.kind:
     of gtSimple:
       return gen.simple_callback(x, y)
@@ -49,12 +49,12 @@ proc newStaticGenerator*[T](value: T): Generator[T] =
 proc newRandomGenerator*[T](values: seq[Generator[T]]): Generator[T] =
   SimpleGenerator() do (x, y: int)-> T:
     var selection = values.randomChoice()
-    selection(x, y)
+    selection.resolve(x, y)
 
 proc newWeightedGenerator*[T](choices: seq[(int, Generator[T])]): Generator[T] =
   SimpleGenerator() do (x, y: int)-> T:
     var selection = choices.weighted_choice()
-    selection(x, y)
+    selection.resolve(x, y)
 
 proc newBitonalGenerator*[T](a, b: Generator[T], scale=1.0): Generator[T] =
   var noise = newNoise()
@@ -62,16 +62,16 @@ proc newBitonalGenerator*[T](a, b: Generator[T], scale=1.0): Generator[T] =
   SimpleGenerator() do (x, y: int)-> T:
     let n = perlin.simplex(noise, x.float * scale, y.float * scale)
     if n > 0.5:
-      a(x, y)
+      a.resolve(x, y)
     else:
-      b(x, y)
+      b.resolve(x, y)
 
 proc newRangedGenerator*[T](ranges: seq[(int, Generator[T])],
                             scale=1.0, jitter=0.0, child=false): Generator[T] =
 
   let callback = proc(x, y: int, noise: float): T =
     let choice = ranges.weighted_selection(noise)
-    choice(x, y, noise)
+    choice.resolve(x, y, noise)
 
   if child == false:
     var noise = newNoise()
@@ -102,4 +102,4 @@ proc newBillowGenerator*[T](generators: seq[Generator[T]], scale=1.0, jitter=0.0
 
     values.sort(cmp, Descending)
     let delta = values[0].value - values[1].value
-    choices[values[0].choice].gen(x, y, delta * 3.0)
+    choices[values[0].choice].gen.resolve(x, y, delta * 3.0)

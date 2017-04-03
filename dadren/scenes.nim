@@ -12,13 +12,13 @@ type
 method enter*(self: Scene) {.base.} =
   discard
 
-method leave*(self: Scene) =
+method leave*(self: Scene) {.base.} =
   discard
 
-method handle*(self: Scene, event: Event) =
+method handle*(self: Scene, event: Event) {.base.} =
   discard
 
-method update*(self: Scene, t, dt: float) =
+method update*(self: Scene, t, dt: float) {.base.} =
   discard
 
 method draw*(self: Scene) {.base.} =

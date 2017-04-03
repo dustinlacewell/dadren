@@ -2,6 +2,7 @@ import future
 import sequtils
 
 import random
+
 import sdl2, sdl2/image
 
 type
@@ -21,8 +22,7 @@ proc weighted_choice*[T](options: seq[(int, T)]): T =
   for pair in options:
     sum += pair[0]
 
-  var val = randomInt(1, sum + 1)
-
+  var val = random(sum + 1)
   for pair in options:
     val -= pair[0]
     if val <= 0:

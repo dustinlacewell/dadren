@@ -78,7 +78,7 @@ proc cacheLookups(table: TilesetTable): TilesetTable =
     for tile in tileset.info.tiles.keys():
       result[tile] = tileset
 
-proc load*(tpm: TilepackManager, name): Tilepack =
+proc load*(tpm: TilepackManager, name: string): Tilepack =
   if tpm.registry.hasKey(name):
     return tpm.registry[name]
 
@@ -90,7 +90,7 @@ proc load*(tpm: TilepackManager, name): Tilepack =
   result = newTilepack(tilepack_data.info, tileset_table, tileset_tiles)
   tpm.registry[name] = result
 
-proc get*(tpm: TilepackManager, name): Tilepack =
+proc get*(tpm: TilepackManager, name: string): Tilepack =
   if not tpm.registry.hasKey(name):
     let msg = "No tilepack with name `" & name & "` is loaded."
     raise newException(NoSuchResourceError, msg)

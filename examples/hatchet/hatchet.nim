@@ -5,19 +5,32 @@ import macros
 import math
 import strutils
 import sequtils
+import marshal
 
 import sdl2
 import random
 
-import dadren/application
-import dadren/scenes
-import dadren/tilepacks
-import dadren/chunks
-import dadren/generators
-import dadren/entities
-import dadren/tilemap
-import dadren/camera
-import dadren/utils
+import dadren.application
+import dadren.scenes
+import dadren.tilepacks
+import dadren.chunks
+import dadren.generators
+import dadren.tilemap
+import dadren.camera
+import dadren.utils
+import dadren.magic
+
+type
+  Position* = object
+    x*, y*: float
+
+  Velocity* = object
+    dx*, dy*: float
+
+  Icon* = object
+    rune*: string
+
+aggregate(Entity, [Position, Velocity, Icon])
 
 # generate test json entity templates
 let templates = parseJson("""
@@ -187,9 +200,11 @@ proc newGameScene(app: App): GameScene =
       ])),
     ], child=true)
 
-  result.tilemap = newTilemap(chunk_size, newBillowGenerator(@[
-    marsh_generator, forest_generator
-  ], scale=4.0, jitter=0.05))
+    gen = newBillowGenerator(@[
+      marsh_generator, forest_generator
+    ], scale=4.0, jitter=0.05)
+
+  result.tilemap = newTilemap(chunk_size, gen)
 
   # result.tilemap = newTilemap(chunk_size, newBillowGenerator(@[
   #   newStaticGenerator(GameTile(terrain: entities.create("grass"))),

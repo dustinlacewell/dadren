@@ -71,7 +71,7 @@ proc get*(am: AtlasManager, name: string): Atlas =
     raise newException(NoSuchResourceError, msg)
   am.registry[name]
 
-proc calculateTilePosition*(atlas: Atlas, n): tuple[x, y: int] =
+proc calculateTilePosition*(atlas: Atlas, n: int): tuple[x, y: int] =
   ((if n > 0: n %% atlas.info.size.w else: 0),
    (if n > 0: n /% atlas.info.size.w else: 0))
 

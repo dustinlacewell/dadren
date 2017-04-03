@@ -18,7 +18,7 @@ proc echo(node: NimNode) =
 
 proc to_object_name*(name: string): string = "$1Obj".format(name)
 
-proc to_field_name*(name: string): string = name.toLower
+proc to_field_name*(name: string): string = name.toLowerAscii
 
 proc to_table_name*(name: string): string = "t_$1".format(to_field_name(name))
 
@@ -315,7 +315,7 @@ proc generate_type_section(name: string,
   result.add(generate_manager(name, components))
   result.add(generate_manager_ref(name))
 
-macro aggregate*(type_name: expr, component_list: expr): stmt {.immediate.} =
+macro aggregate*(type_name, component_list): untyped =
   let name = parse_aggregate_name(type_name)
   let components = parse_component_names(component_list)
   result = newNimNode(nnkStmtList)
@@ -333,4 +333,3 @@ macro aggregate*(type_name: expr, component_list: expr): stmt {.immediate.} =
   for component in components:
     result.add(generate_add_component(name, component))
   result.add(generate_create_entity(name, components))
-
