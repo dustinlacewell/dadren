@@ -77,7 +77,6 @@ let templates = parseJson("""
  },
  "ice": {
    "Position": { },
-   "Velocity": { },
    "Icon": {"rune": "ice"}
  },
  "stone": {
