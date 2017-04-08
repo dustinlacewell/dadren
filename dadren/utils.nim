@@ -8,14 +8,25 @@ import sdl2, sdl2/image
 type
   Point* = tuple[x, y: int]
   Size* = tuple[w, h: int]
-  Region* = tuple[x, y, w, h: int]
+  Rect* = tuple[x, y, w, h: int]
   Resolution* = object
     width*, height*: int
 
-converter cint2int*(x: cint): int = x.int
-converter int2cint*(x: int): cint = x.cint
-converter uint2int*(x: uint): int = x.int
-converter int2uint*(x: int): uint = x.uint
+converter to_int*(x: cint): int = x.int
+converter to_cint*(x: int): cint = x.cint
+converter to_int*(x: uint): int = x.int
+converter to_uint*(x: int): uint = x.uint
+converter to_cint*(x: float): cint = x.cint
+converter to_cint*(x: uint8): cint = x.cint
+converter to_float*(x: cint): float = x.float
+
+type Region*[T: int|float] = object
+    left*, top*, right*, bottom*: T
+
+proc width*[T](self: Region[T]): T = self.right - self.left
+proc height*[T](self: Region[T]): T = self.bottom - self.top
+proc midpointW*[T](self: Region[T], position: float): T = self.left + position * self.width
+proc midpointH*[T](self: Region[T], position: float): T = self.top + position * self.height
 
 proc weighted_choice*[T](options: seq[(int, T)]): T =
   var sum: int = 0
