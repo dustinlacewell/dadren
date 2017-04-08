@@ -34,13 +34,13 @@ proc newLeaf[T](content: T, left, top, right, bottom: float, parent: BSPNode[T] 
 proc newBSPTree[T](content: T, left, top, right, bottom: float): BSPTree[T] =
   result = new(BSPTree[T])
   result.root = newLeaf(content, left, top, right, bottom)
-  let l = result.root as Leaf[T]
-  result.leaves = @[l]
+  let leaf = result.root as Leaf[T]
+  result.leaves = @[leaf]
 
-method left[T](self: T): float = self.region.left
-method top[T](self: T): float = self.region.top
-method right[T](self: T): float = self.region.right
-method bottom[T](self: T): float = self.region.bottom
+method left[T](self: BSPNode[T]): float {.base.} = self.region.left
+method top[T](self: BSPNode[T]): float {.base.} = self.region.top
+method right[T](self: BSPNode[T]): float {.base.} = self.region.right
+method bottom[T](self: BSPNode[T]): float {.base.} = self.region.bottom
 
 method midpoint[T](self: ParentNode[T]): float {.base.} =
   raise newException(Exception, "midpoint not implemented for ParentNode")
@@ -66,8 +66,7 @@ proc newSibling[T](self: HSplit[T], target: Leaf[T]): Leaf[T] =
 method siblingFor[T](self: ParentNode[T], target: Leaf[T]): BSPNode[T] {.base.} =
   if self.forward == target: self.backward else: self.forward
 
-
-method resize[T](self: BSPNode[T], region: Region[float]) =
+method resize[T](self: BSPNode[T], region: Region[float]) {.base.} =
   discard
 
 method resize[T](self: Leaf[T], region: Region[float]) =
@@ -107,17 +106,31 @@ method resize[T](self: HSplit[T], region: Region[float]) =
     right:self.right,
     bottom:self.bottom))
 
-method adjust[T](self: T, ratio: float) =
+method adjust[T](self: ParentNode[T], ratio: float) {.base.} =
   self.ratio = ratio
   resize(self, self.region)
 
 proc split[T, K](self: BSPTree[T], target: Leaf[T], parent: K): Leaf[T] =
+
+  if not isNil(target.parent):
+    var p = (target.parent as ParentNode[T])
+    if p.forward == target:
+      p.forward = parent
+    else:
+      p.backward = parent
+
+  if self.root == target:
+    self.root = parent
+
   # update the new parent
   parent.backward = target
+  parent.backward.parent = parent
   parent.forward = parent.newSibling(target)
+  parent.forward.parent = parent
   parent.resize(target.region)
   # track the new leaf
   self.leaves.add(parent.forward as Leaf[T])
+
   return (parent.forward as Leaf[T])
 
 proc vsplit[T](self: BSPTree[T], target:Leaf[T], ratio: float): Leaf[T] =
@@ -134,43 +147,36 @@ proc hsplit[T](self: BSPTree[T], target:Leaf[T], ratio: float): Leaf[T] =
 
 proc delete[T](self: BSPTree[T], target:Leaf[T]) =
   # return target if it is the root node
-  echo "Attempting delete"
   if self.root == target:
-    echo "Wont delete root."
     return
 
+  # stop tracking deleted node
   let idx = self.leaves.find(target)
   if idx > -1:
-    echo "Deleting target"
     self.leaves.delete(idx)
-  var parent = (target.parent as ParentNode[T])
 
+  # get target parent
+  var parent = (target.parent as ParentNode[T])
   # determine correct sibling
   var sib = parent.siblingFor(target)
-  echo "Performing resize on result"
-  echo $(target.region)
-  echo $(sib.region)
-  echo $(parent.region)
+  # resize sibling to parent region
   sib.region = parent.region
 
-  # if target's parent is root
-  if self.root == target.parent:
-    echo "Target's parent is root"
+  if self.root == parent:
+    # if target's parent is root
     self.root = sib
-    return
-
-  if isNil(parent.parent):
-    echo "Grandparent is nil"
-    return
-
-  var grandparent = (parent.parent as ParentNode[T])
-
-  # if target's parent is a split
-  if parent == grandparent:
-    grandparent.forward = sib
+    sib.parent = nil
   else:
-    grandparent.backward = sib
+    var grandparent = (parent.parent as ParentNode[T])
+    # grandparent becomes parent
+    sib.parent = grandparent
 
+    if grandparent.forward == (parent as BSPNode[T]):
+      grandparent.forward = sib
+    else:
+      grandparent.backward = sib
+
+  self.root.resize(self.root.region)
 
 type
   Color = ref object
@@ -193,7 +199,7 @@ proc contains[T](self: utils.Region[T], x, y: float): bool =
   return  x > self.left and x < self.right and
           y > self.top and y < self.bottom
 
-method toStr(x: BSPNode[Color], depth = 0): string =
+method toStr(x: BSPNode[Color], depth = 0): string {.base.} =
   "Override me!"
 
 method toStr(x: VSplit[Color], depth = 0): string =
@@ -216,36 +222,39 @@ method toStr(x: HSplit[Color], depth = 0): string =
 method toStr(x: Leaf[Color], depth = 0): string =
   result = ""
   for i in 0..depth:
-    result = result & "+"
-  return result & "Leaf " & $(x.region.left) & " & " & $(x.region.top) & " & " & $(x.region.right) & " & " & $(x.region.bottom) & "\n"
+    result = result & ":"
+  return "$1 Leaf: Region(w:$2-$4, h:$3-$5) Color($6, $7, $8)\n" % [
+    result,
+    $(x.region.left), $(x.region.top), $(x.region.right), $(x.region.bottom),
+    $(x.content.r), $(x.content.g), $(x.content.b)
+  ]
 
-method draw(self: BSPNode[Color], display: var RendererPtr, depth=0) =
+
+method draw(self: BSPNode[Color], display: var RendererPtr, depth=0) {.base.} =
   echo "Override this!"
 
 method draw(self: VSplit[Color], display: var RendererPtr, depth=0) =
-  # var
-  #   mp = self.midpointW(self.ratio)
-  #   top = self.top
-  #   bottom = self.bottom
-  # display.setDrawColor(255, 255, 255, 255)
-  # var y: int
-  # for y in 0..10:
-  #   echo "wtf"
-  # echo "VSplit ", depth
-  # echo "-- backward"
+  var
+    mp = self.midpoint
+    top = int(self.top)
+    bottom = int(self.bottom)
+  display.setDrawColor(255, 255, 255, 255)
+  for y in top..bottom:
+    display.drawPoint(mp, y)
+
   draw(self.backward, display, depth+1)
-  # echo "-- forward"
   draw(self.forward, display, depth+1)
 
 method draw(self: HSplit[Color], display: var RendererPtr, depth=0) =
-  # let mp = self.midpointH(self.ratio)
-  # display.setDrawColor(255, 255, 255, 255)
-  # for y in (self.region.top)..(self.region.bottom):
-  #   display.drawPoint(x, mp)
-  # echo "HSplit ", depth
-  # echo "-- backward"
+  var
+    mp = self.midpoint
+    left = int(self.left)
+    right = int(self.right)
+  display.setDrawColor(255, 255, 255, 255)
+  for x in left..right:
+    display.drawPoint(x, mp)
+
   draw(self.backward, display, depth+1)
-  # echo "-- forward"
   draw(self.forward, display, depth+1)
 
 method draw(self: Leaf[Color], display: var RendererPtr, depth=0) =
@@ -291,15 +300,22 @@ proc handle_key(self: GameScene, keysym: KeySym) =
           echo "Parent: ", type(node.parent).name
     of K_F:
       echo self.bsp.root.toStr()
+      for leaf in self.bsp.leaves:
+        echo leaf.toStr()
     of K_V:
       if not isNil(self.last):
         var splitLeaf = self.bsp.vsplit((self.last as Leaf[Color]), 0.5)
         splitLeaf.content = Color(r:255)
+        self.last = nil
     of K_H:
       if not isNil(self.last):
         var splitLeaf = self.bsp.hsplit((self.last as Leaf[Color]), 0.5)
         splitLeaf.content = Color(r:255)
+        self.last = nil
+    of K_R:
+      self.bsp.root.resize(self.bsp.root.region)
     else: discard
+  self.last = nil
 
 method handle(self: GameScene, event: Event) =
   case event.kind:
