@@ -42,7 +42,7 @@ method top[T](self: T): float = self.region.top
 method right[T](self: T): float = self.region.right
 method bottom[T](self: T): float = self.region.bottom
 
-method midpoint[T](self: ParentNode[T]): float =
+method midpoint[T](self: ParentNode[T]): float {.base.} =
   raise newException(Exception, "midpoint not implemented for ParentNode")
 
 method midpoint[T](self: VSplit[T]): float =
@@ -51,32 +51,35 @@ method midpoint[T](self: VSplit[T]): float =
 method midpoint[T](self: HSplit[T]): float =
   self.region.midpointH(self.ratio)
 
-proc newSibling[T](self: VSplit[T], target: Leaf): Leaf =
+proc newSibling[T](self: VSplit[T], target: Leaf[T]): Leaf[T] =
   newLeaf[T](
     target.content,
     self.midpoint, target.region.top,
     target.region.right, target.region.bottom, self)
 
-proc newSibling[T](self: HSplit[T], target: Leaf): Leaf =
+proc newSibling[T](self: HSplit[T], target: Leaf[T]): Leaf[T] =
   newLeaf[T](
     target.content,
     target.region.left, self.midpoint,
     target.region.right, target.region.bottom, self)
 
-method siblingFor[T](self: ParentNode[T], target: Leaf): BSPNode[T] =
+method siblingFor[T](self: ParentNode[T], target: Leaf[T]): BSPNode[T] {.base.} =
   if self.forward == target: self.backward else: self.forward
 
 
-proc resize[T](self: Leaf[T], region: Region[float]) =
+method resize[T](self: BSPNode[T], region: Region[float]) =
+  discard
+
+method resize[T](self: Leaf[T], region: Region[float]) =
   self.region = region
 
-proc resize[T](self: VSplit[T], region: Region[float]) =
+method resize[T](self: VSplit[T], region: Region[float]) =
   self.region = region
   let
     mp = self.midpoint
     bw = self.backward
     fw = self.forward
-  bw.resize(Region[T](
+  resize(self.backward, Region[T](
     left:self.left,
     top:self.top,
     right:mp,
@@ -87,7 +90,7 @@ proc resize[T](self: VSplit[T], region: Region[float]) =
     right:self.right,
     bottom:self.bottom))
 
-proc resize[T](self: HSplit[T], region: Region[float]) =
+method resize[T](self: HSplit[T], region: Region[float]) =
   self.region = region
   let
     mp = self.midpoint
@@ -104,32 +107,32 @@ proc resize[T](self: HSplit[T], region: Region[float]) =
     right:self.right,
     bottom:self.bottom))
 
-proc adjust[T](self: T, ratio: float) =
+method adjust[T](self: T, ratio: float) =
   self.ratio = ratio
   resize(self, self.region)
 
-proc split[T, K](self: BSPTree[T], target: Leaf, parent: K): Leaf[T] =
+proc split[T, K](self: BSPTree[T], target: Leaf[T], parent: K): Leaf[T] =
   # update the new parent
   parent.backward = target
   parent.forward = parent.newSibling(target)
   parent.resize(target.region)
   # track the new leaf
-  self.leaves.add(parent.forward as Leaf)
-  return (parent.forward as Leaf)
+  self.leaves.add(parent.forward as Leaf[T])
+  return (parent.forward as Leaf[T])
 
-proc vsplit[T](self: BSPTree[T], target:Leaf, ratio: float): Leaf[T] =
+proc vsplit[T](self: BSPTree[T], target:Leaf[T], ratio: float): Leaf[T] =
   var parent = new(VSplit[T])
   parent.parent = target.parent
   parent.ratio = ratio
   result = self.split(target, parent)
 
-proc hsplit[T](self: BSPTree[T], target:Leaf, ratio: float): Leaf[T] =
+proc hsplit[T](self: BSPTree[T], target:Leaf[T], ratio: float): Leaf[T] =
   var parent = new(HSplit[T])
   parent.parent = target.parent
   parent.ratio = ratio
   result = self.split(target, parent)
 
-method delete[T](self: BSPTree[T], target:Leaf) =
+proc delete[T](self: BSPTree[T], target:Leaf[T]) =
   # return target if it is the root node
   echo "Attempting delete"
   if self.root == target:
@@ -167,6 +170,7 @@ method delete[T](self: BSPTree[T], target:Leaf) =
     grandparent.forward = sib
   else:
     grandparent.backward = sib
+
 
 type
   Color = ref object
