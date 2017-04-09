@@ -14,9 +14,9 @@ type
     content*: T
   # parents maintain two children and partition ratio
   ParentNode*[T] = ref object of BSPNode[T]
+    ratio*: float
     forward*: BSPNode[T]
     backward*: BSPNode[T]
-    ratio*: float
   # two subclasses to hold vertical and horizontal implementations
   HSplit*[T] = ref object of ParentNode[T]
   VSplit*[T] = ref object of ParentNode[T]
@@ -36,8 +36,7 @@ proc newBSPTree*[T](content: T, left, top, right, bottom: float): BSPTree[T] =
   # creates a new tree with a leaf containing the provided content as the root
   result = new(BSPTree[T])
   result.root = newLeaf(content, left, top, right, bottom)
-  let leaf = result.root as Leaf[T]
-  result.leaves = @[leaf]
+  result.leaves = @[result.root as Leaf[T]]
 
 # helper methods for accessing the underlying region extents
 method left*[T](self: BSPNode[T]): float {.base.} = self.region.left
@@ -45,16 +44,17 @@ method top*[T](self: BSPNode[T]): float {.base.} = self.region.top
 method right*[T](self: BSPNode[T]): float {.base.} = self.region.right
 method bottom*[T](self: BSPNode[T]): float {.base.} = self.region.bottom
 
-method midpoint*[T](self: ParentNode[T]): float {.base.} =
-  raise newException(Exception, "midpoint not implemented for ParentNode")
-
-method midpoint*[T](self: VSplit[T]): float =
+proc midpoint*[T](self: VSplit[T]): float =
   # returns the midpoint between left and right extents
   self.region.midpointW(self.ratio)
 
-method midpoint*[T](self: HSplit[T]): float =
+proc midpoint*[T](self: HSplit[T]): float =
   # returns the midpoint between top and bottom extents
   self.region.midpointH(self.ratio)
+
+proc siblingFor*[T](self: ParentNode[T], target: Leaf[T]): BSPNode[T] =
+  # returns the sibling for the provided target
+  if self.forward == target: self.backward else: self.forward
 
 proc newSibling[T](self: VSplit[T], target: Leaf[T]): Leaf[T] =
   # creates a half-width sibling for target with the same content
@@ -70,10 +70,6 @@ proc newSibling[T](self: HSplit[T], target: Leaf[T]): Leaf[T] =
     target.region.left, self.midpoint,
     target.region.right, target.region.bottom, self)
 
-method siblingFor*[T](self: ParentNode[T], target: Leaf[T]): BSPNode[T] {.base.} =
-  # returns the sibling for the provided target
-  if self.forward == target: self.backward else: self.forward
-
 method resize*[T](self: BSPNode[T], region: Region[float]) {.base.} =
   self.region = region
 
@@ -84,16 +80,12 @@ method resize*[T](self: VSplit[T], region: Region[float]) =
     mp = self.midpoint
     bw = self.backward
     fw = self.forward
-  resize(self.backward, Region[T](
-    left:self.left,
-    top:self.top,
-    right:mp,
-    bottom:self.bottom))
+  bw.resize(Region[T](
+    # right edge is set to the midpoint
+    left:self.left, top:self.top, right:mp, bottom:self.bottom))
   fw.resize(Region[T](
-    left:mp,
-    top:self.top,
-    right:self.right,
-    bottom:self.bottom))
+    # left edge is set to the midpoint
+    left:mp, top:self.top, right:self.right, bottom:self.bottom))
 
 method resize*[T](self: HSplit[T], region: Region[float]) =
   # set region and recursively resize children
@@ -103,46 +95,42 @@ method resize*[T](self: HSplit[T], region: Region[float]) =
     bw = self.backward
     fw = self.forward
   bw.resize(Region[T](
-    left:self.left,
-    top:self.top,
-    right:self.right,
-    bottom:mp))
+    # bottom edge is set to the midpoint
+    left:self.left, top:self.top, right:self.right, bottom:mp))
   fw.resize(Region[T](
-    left:self.left,
-    top:mp,
-    right:self.right,
-    bottom:self.bottom))
+    # top edge is set to the midpoint
+    left:self.left, top:mp, right:self.right, bottom:self.bottom))
 
 method adjust*[T](self: ParentNode[T], ratio: float) {.base.} =
   # set the ratio and recursively resize all children
   self.ratio = ratio
   resize(self, self.region)
 
-proc split[T, K](self: BSPTree[T], target: Leaf[T], parent: K): Leaf[T] =
-  # replace target with parent, and add target and new sibling a children
-  if not isNil(target.parent):
-    # target's parent becomes grandparent
-    var gp = (target.parent as ParentNode[T])
-    # make sure parent is correct child of grandparent
-    if gp.forward == target:
-      gp.forward = parent
-    else:
-      gp.backward = parent
-
-  # update tree's root node
-  if self.root == target:
+proc subjugate[T, K](self: BSPTree[T], parent: K, backward, forward: Leaf[T], grandparent: ParentNode[T] = nil) =
+  # reparent forward and backward under parent, and parent under grandparent if provided
+  if isNil(grandparent):
+    # if there's no grandparent, parent must be root
     self.root = parent
+  else:
+    # make sure parent is correct child of grandparent
+    if grandparent.forward == backward or grandparent.forward == forward:
+      grandparent.forward = parent
+    else:
+      grandparent.backward = parent
 
-  # update the new parent
-  parent.backward = target
+  # update the parent-child associations
+  parent.backward = backward
   parent.backward.parent = parent
-  parent.forward = parent.newSibling(target)
+  parent.forward = forward
   parent.forward.parent = parent
-  parent.resize(target.region)
-  # track the new sibling leaf
-  self.leaves.add(parent.forward as Leaf[T])
-  # return newly created sibling
-  return (parent.forward as Leaf[T])
+  # recursively resize all children
+  parent.resize(parent.region)
+
+proc split[T, K](self: BSPTree[T], target: Leaf[T], parent: K): Leaf[T] =
+  result = parent.newSibling(target)
+  parent.region = target.region
+  subjugate(self, parent, target, result, (target.parent as ParentNode[T]))
+  self.leaves.add(result)
 
 proc vsplit*[T](self: BSPTree[T], target:Leaf[T], ratio: float): Leaf[T] =
   # vertically split the provided leaf and return new sibling
