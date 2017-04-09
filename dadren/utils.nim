@@ -21,6 +21,8 @@ converter to_uint*(x: int): uint = x.uint
 converter to_cint*(x: float): cint = x.cint
 converter to_cint*(x: uint8): cint = x.cint
 converter to_float*(x: cint): float = x.float
+converter to_cint(x: Scancode): cint = cint(x)
+converter to_bool(x: uint8):bool  = bool(x)
 
 type Region*[T: int|float] = object
     left*, top*, right*, bottom*: T
@@ -29,6 +31,10 @@ proc width*[T](self: Region[T]): T = self.right - self.left
 proc height*[T](self: Region[T]): T = self.bottom - self.top
 proc midpointW*[T](self: Region[T], position: float): T = self.left + position * self.width
 proc midpointH*[T](self: Region[T], position: float): T = self.top + position * self.height
+
+proc contains*[T](self: utils.Region[T], x, y: float): bool =
+  return  x > self.left and x < self.right and
+          y > self.top and y < self.bottom
 
 proc weighted_choice*[T](options: seq[(int, T)]): T =
   var sum: int = 0

@@ -23,13 +23,6 @@ proc newGameScene(app: App): GameScene =
   let size = app.getLogicalSize()
   result.bsp = newBSPTree(Color(), 0f, 0f, size.w.float, size.h.float)
 
-converter scancode2uint8(x: Scancode): cint = cint(x)
-converter uint82bool(x: uint8):bool  = bool(x)
-
-proc contains[T](self: utils.Region[T], x, y: float): bool =
-  return  x > self.left and x < self.right and
-          y > self.top and y < self.bottom
-
 method toStr(x: BSPNode[Color], depth = 0): string {.base.} =
   "Override me!"
 
