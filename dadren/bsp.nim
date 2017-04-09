@@ -56,14 +56,16 @@ proc siblingFor*[T](self: ParentNode[T], target: Leaf[T]): BSPNode[T] =
   # returns the sibling for the provided target
   if self.forward == target: self.backward else: self.forward
 
-proc newSibling[T](self: VSplit[T], target: Leaf[T]): Leaf[T] =
+method newSibling[T](self: ParentNode[T], target: Leaf[T]): Leaf[T] {.base.} = discard
+
+method newSibling[T](self: VSplit[T], target: Leaf[T]): Leaf[T] =
   # creates a half-width sibling for target with the same content
   newLeaf[T](
     target.content,
     self.midpoint, target.region.top,
     target.region.right, target.region.bottom, self)
 
-proc newSibling[T](self: HSplit[T], target: Leaf[T]): Leaf[T] =
+method newSibling[T](self: HSplit[T], target: Leaf[T]): Leaf[T] =
   # creates a half-height sibling for target with the same content
   newLeaf[T](
     target.content,
@@ -106,7 +108,7 @@ method adjust*[T](self: ParentNode[T], ratio: float) {.base.} =
   self.ratio = ratio
   resize(self, self.region)
 
-proc subjugate[T, K](self: BSPTree[T], parent: K, backward, forward: Leaf[T], grandparent: ParentNode[T] = nil) =
+proc subjugate[T](self: BSPTree[T], parent: ParentNode[T], backward, forward: Leaf[T], grandparent: ParentNode[T] = nil) =
   # reparent forward and backward under parent, and parent under grandparent if provided
   if isNil(grandparent):
     # if there's no grandparent, parent must be root
@@ -126,7 +128,7 @@ proc subjugate[T, K](self: BSPTree[T], parent: K, backward, forward: Leaf[T], gr
   # recursively resize all children
   parent.resize(parent.region)
 
-proc split[T, K](self: BSPTree[T], target: Leaf[T], parent: K): Leaf[T] =
+proc split[T](self: BSPTree[T], target: Leaf[T], parent: ParentNode[T]): Leaf[T] =
   result = parent.newSibling(target)
   parent.region = target.region
   subjugate(self, parent, target, result, (target.parent as ParentNode[T]))
@@ -153,10 +155,8 @@ proc delete*[T](self: BSPTree[T], target:Leaf[T]) =
 
   # stop tracking deleted node
   let idx = self.leaves.find(target)
-  if idx > -1:
-    self.leaves.delete(idx)
+  self.leaves.delete(idx)
 
-  # get target parent
   var parent = (target.parent as ParentNode[T])
   # determine correct sibling
   var sib = parent.siblingFor(target)
