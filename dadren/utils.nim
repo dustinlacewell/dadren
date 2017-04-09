@@ -5,6 +5,8 @@ import random
 
 import sdl2, sdl2/image
 
+template `as`* (a, b: untyped): untyped = ((b)a)
+
 type
   Point* = tuple[x, y: int]
   Size* = tuple[w, h: int]
