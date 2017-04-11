@@ -1,5 +1,6 @@
 import future
 import sequtils
+import hashes
 
 import random
 
@@ -8,9 +9,7 @@ import sdl2, sdl2/image
 template `as`* (a, b: untyped): untyped = ((b)a)
 
 type
-  Point* = tuple[x, y: int]
   Size* = tuple[w, h: int]
-  Rect* = tuple[x, y, w, h: int]
   Resolution* = object
     width*, height*: int
 
@@ -24,6 +23,22 @@ converter to_float*(x: cint): float = x.float
 converter to_cint(x: Scancode): cint = cint(x)
 converter to_bool(x: uint8):bool  = bool(x)
 
+type Point*[T: int|float] = object
+    x*, y*: T
+
+proc hash*[T](self: Point[T]): Hash =
+  hash((x: self.x, y: self.y))
+
+type Rect*[T: int|float] = object
+    x*, y*, w*, h*: T
+
+proc contains*[T](self: utils.Rect[T], x, y: float): bool =
+  (x > self.x and x < self.x + self.w and
+   y > self.y and y < self.y + self.h)
+
+proc contains*[T](self: utils.Rect[T], p: utils.Point[T]): bool =
+  self.contains(p.x, p.y)
+
 type Region*[T: int|float] = object
     left*, top*, right*, bottom*: T
 
@@ -33,8 +48,11 @@ proc midpointW*[T](self: Region[T], position: float): T = self.left + position *
 proc midpointH*[T](self: Region[T], position: float): T = self.top + position * self.height
 
 proc contains*[T](self: utils.Region[T], x, y: float): bool =
-  return  x > self.left and x < self.right and
-          y > self.top and y < self.bottom
+  (x > self.left and x < self.right and
+   y > self.top and y < self.bottom)
+
+proc contains*[T](self: utils.Region[T], p: utils.Point[T]): bool =
+  self.contains(p.x, p.y)
 
 proc weighted_choice*[T](options: seq[(int, T)]): T =
   var sum: int = 0

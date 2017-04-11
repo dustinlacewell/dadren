@@ -7,7 +7,7 @@ import ./exceptions
 import ./utils
 
 type
-  TileTable = Table[string, utils.Point]
+  TileTable = Table[string, utils.Point[int]]
 
   TilesetInfo = object
     name*, filename*: string
@@ -39,7 +39,7 @@ proc newTilesetManager*(atlases: AtlasManager): TilesetManager =
   result.registry = initTable[string, Tileset]()
 
 proc getTileTable*(atlas: Atlas, tiles: seq[string]): TileTable =
-  result = initTable[string, utils.Point]()
+  result = initTable[string, utils.Point[int]]()
   var i = 0
   for tile in tiles:
     result[tile] = atlas.calculateTilePosition(i)
@@ -66,7 +66,7 @@ proc get*(tmm: TilesetManager, name: string): Tileset =
   tmm.registry[name]
 
 proc render*(display: RendererPtr, tileset: Tileset, name: string, dx, dy: int) =
-  let (tx, ty) = tileset.info.tiles[name]
-  display.render(tileset.atlas, tx, ty, dx, dy)
+  let p = tileset.info.tiles[name]
+  display.render(tileset.atlas, p.x, p.y, dx, dy)
 
 

@@ -159,7 +159,7 @@ proc newGameScene(app: App): GameScene =
   let
     render_size = app.getLogicalSize()
     chunk_size = (8, 8)
-    camera_position = (0, 0)
+    camera_position = utils.Point[int](x:0, y:0)
     camera_size = render_size
 
   new(result)

@@ -1,3 +1,7 @@
+# The purpose of this module is to provide a high-level interface for generating a tree
+# that can represent a subset of the Nim AST for declaring types. These trees can then
+# be rendered into actual Nim AST. This can benefit macro authors.
+
 import macros
 import tables
 
@@ -16,7 +20,7 @@ type
         type_name: TypeName
       of tdkTuple:
         identifiers: seq[Field]
-  Field* = object # denotes an typed name
+  Field* = object # denotes a typed name
     name: Name
     type_desc: TypeDesc
   Identifier = object # denotes a parameter or other assignable name

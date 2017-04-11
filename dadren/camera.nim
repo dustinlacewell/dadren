@@ -16,19 +16,19 @@ import ./tilepacks
 
 type
   Camera*[T] = ref object
-    position: Point
+    position: Point[int]
     size: Size
     tilepack: Tilepack
     map*: Tilemap[T]
-    focus: Point
+    focus: Point[int]
 
-proc newCamera*[T](position: Point, size: Size, tilepack: Tilepack): Camera[T] =
+proc newCamera*[T](position: Point[int], size: Size, tilepack: Tilepack): Camera[T] =
   new(result)
   result.position = position
   result.size = size
   result.tilepack = tilepack
   result.map = nil
-  result.focus = (0, 0)
+  result.focus = Point[int](x:0, y:0)
 
 proc maxWidth[T](camera: Camera[T]): int =
   floor(camera.size.w / camera.tilepack.info.tile_size.width).int - 1
@@ -36,7 +36,7 @@ proc maxWidth[T](camera: Camera[T]): int =
 proc maxHeight[T](camera: Camera[T]): int =
   floor(camera.size.h / camera.tilepack.info.tile_size.height).int - 1
 
-proc attach*[T](camera: Camera[T], map: Tilemap[T], focus: Point = (0, 0)) =
+proc attach*[T](camera: Camera[T], map: Tilemap[T], focus: Point[int] = Point[int](x:0, y:0)) =
   camera.map = map
   camera.focus = focus
 

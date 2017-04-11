@@ -6,48 +6,45 @@ import sequtils
 
 import ./chunks
 import ./generators
+import dadren.utils
 
 type
   Tilemap*[T] = ref object
     chunk_size: Size
-    chunks: Table[Point, Chunk]
+    chunks: Table[Point[int], Chunk]
     generator: Generator[T]
 
 proc newTilemap*[T](chunk_size: Size, generator: Generator[T]): Tilemap[T] =
   new(result)
   result.chunk_size = chunk_size
   result.generator = generator
-  result.chunks = initTable[Point, Chunk]()
+  result.chunks = initTable[Point[int], Chunk]()
 
-proc makeChunk*[T](map: Tilemap[T], pos: Point, size: Size): Chunk =
+proc makeChunk*[T](map: Tilemap[T], pos: Point[int], size: Size): Chunk =
   result = newChunk()
   let
     tx = pos.x * size.w
     ty = pos.y * size.h
   for x in 0..size.w:
     for y in 0..size.h:
-      result.add((x, y), map.generator.resolve(tx + x, ty + y))
+      result.add(Point[int](x:x, y:y), map.generator.resolve(tx + x, ty + y))
 
-proc getChunk(tm: Tilemap, pos: Point): Chunk =
+proc getChunk(tm: Tilemap, pos: Point[int]): Chunk =
   if pos notin tm.chunks:
     let new_chunk = tm.makeChunk(pos, tm.chunk_size)
     tm.chunks[pos] = new_chunk
     return new_chunk
   tm.chunks[pos]
 
-proc chunkPosition*(tm: Tilemap, x, y: int): Point =
-  var
-    x_pos = int(floor(x / tm.chunk_size.w))
-    y_pos = int(floor(y / tm.chunk_size.h))
+proc chunkPosition*(tm: Tilemap, x, y: int): Point[int] =
+  Point[int](
+    x: int(floor(x / tm.chunk_size.w)),
+    y: int(floor(y / tm.chunk_size.h)))
 
-  (x:x_pos, y:y_pos)
-
-proc tilePosition(tm: Tilemap, x, y: int): Point =
-  var
-    x_pos = int(float(x) mod float(tm.chunk_size.w))
-    y_pos = int(float(y) mod float(tm.chunk_size.h))
-
-  (x:x_pos, y:y_pos)
+proc tilePosition(tm: Tilemap, x, y: int): Point[int] =
+  Point[int](
+    x: int(float(x) mod float(tm.chunk_size.w)),
+    y: int(float(y) mod float(tm.chunk_size.h)))
 
 proc getTile*(tm: Tilemap, x, y: int): Tile =
   let

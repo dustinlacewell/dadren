@@ -181,3 +181,14 @@ proc delete*[T](self: BSPTree[T], target:Leaf[T]) =
 
   # we could be more smart but just resize the whole tree
   self.root.resize(self.root.region)
+
+proc leafAtPoint*[T](self: BSPTree[T], x, y: float): Leaf[T] =
+  if self.root.region.contains(x, y):
+    var node = (self.root as BSPNode[T])
+    while node of ParentNode[T]:
+      var parent = (node as ParentNode[T])
+      if parent.backward.region.contains(x, y):
+        node = (parent.backward as BSPNode[T])
+      else:
+        node = (parent.forward as BSPNode[T])
+    return (node as Leaf[T])

@@ -1,3 +1,5 @@
+# Here be dragons. Grumpy ones!
+
 import tables
 import macros
 import strutils
@@ -37,6 +39,7 @@ proc parse_component_names(node: NimNode): seq[string] =
       result.add($(node))
     of nnkBracket: # multiple identifiers in a bracket
       for child in node:
+        # each child must be an identifier
         if child.kind != nnkIdent:
           throw MACRO_FORMAT_ERROR
         result.add($(child))
