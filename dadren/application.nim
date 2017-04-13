@@ -37,11 +37,18 @@ type
     display*: RendererPtr
     clock*: Clock
     running*: bool
+    size*: Size
   App* = ref AppObj
+
+proc getLogicalSize*(app: App): Size =
+  var width, height: cint
+  app.display.getLogicalSize(width, height)
+  (width.int, height.int)
 
 proc setLogicalSize(app: App, width, height: cint) =
   discard app.display.setLogicalSize(cint(width.float / app.settings.scale),
                                      cint(height.float / app.settings.scale))
+  app.size = app.getLogicalSize()
 
 proc setLogicalSize(app: App) =
   if app.settings.resolution.width == -1 and app.settings.resolution.height == -1:
@@ -51,11 +58,6 @@ proc setLogicalSize(app: App) =
   else:
     app.setLogicalSize(app.settings.resolution.width,
                        app.settings.resolution.height)
-
-proc getLogicalSize*(app: App): Size =
-  var width, height: cint
-  app.display.getLogicalSize(width, height)
-  (width.int, height.int)
 
 proc getDisplayFlags(settings: AppSettings): cint =
   if settings.accelerated:

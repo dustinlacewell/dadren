@@ -1,0 +1,8 @@
+{
+    "title": "Hatchet 0.1",
+    "scale": 20.0,
+    "resolution": {"width": -1, "height": -1},
+    "accelerated": true,
+    "vsync": true,
+    "tilepack_path": "../tilepacks"
+}
