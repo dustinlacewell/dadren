@@ -3,12 +3,39 @@ import random
 
 import dadren.application
 import dadren.scenes
+import dadren.utils
 
 type
-  CellPattern = tuple[left, mid, right, output: bool]
-  Ruleset = array[0..7, bool]
+  Universe* = seq[bool]
+  Pattern* = tuple[left, mid, right: bool]
+  Rule* = array[0..7, bool]
 
-proc pattern2rule(pattern: CellPattern): int =
+  CA1D = ref object
+    rule: uint8
+    universe: seq[bool]
+    age: uint8
+
+  GameScene = ref object of Scene
+    app: App
+    buf: TexturePtr
+    sim: CA1D
+
+# treat uint8 as bool
+converter uint8_bool(x: uint8):bool  = x.bool
+# native rects to c rects
+converter intRect_cintRect(t: tuple[x:int,y:int,w:int,h:int]):
+  sdl2.Rect = (t.x.cint, t.y.cint, t.w.cint,t.h.cint)
+
+converter uint8_Rule(x: uint8): Rule =
+  for i in 0..7:
+    result[i] = ((x shr i) and 1) == 1
+
+converter Rule_uint8(x: Rule): uint8 =
+  for i in 0..7:
+    if x[i]:
+      result = result + uint8(1 shl i)
+
+proc index(pattern: Pattern): int =
   if pattern.right:
     result += 1
   if pattern.mid:
@@ -16,97 +43,115 @@ proc pattern2rule(pattern: CellPattern): int =
   if pattern.left:
     result += 4
 
-proc binDigits(x: BiggestInt, r: int): int =
-  ## Calculates how many digits `x` has when each digit covers `r` bits.
-  result = 1
-  var y = x shr r
-  while y > 0:
-    y = y shr r
-    inc(result)
+proc newCA1D(rule: uint8, universe: Universe): CA1D =
+  new(result)
+  result.rule = rule
+  result.universe = universe
 
-proc toBin*(x: BiggestInt, len: Natural = 0): string =
-  ## converts `x` into its binary representation. The resulting string is
-  ## always `len` characters long. By default the length is determined
-  ## automatically. No leading ``0b`` prefix is generated.
-  var
-    mask: BiggestInt = 1
-    shift: BiggestInt = 0
-    len = if len == 0: binDigits(x, 1) else: len
-  result = newString(len)
-  for j in countdown(len-1, 0):
-    result[j] = chr(int((x and mask) shr shift) + ord('0'))
-    shift = shift + 1
-    mask = mask shl 1
+proc ruleset(self: CA1D): Rule = self.rule
 
-proc MakeRuleset(number: uint8): Ruleset =
-  for i in 0..7:
-    result[i] = ((number shr i) and 1) == 1
+proc size(self: CA1D): int = self.universe.len
 
-type
-  GameScene = ref object of Scene
-    app: App
-    buf: TexturePtr
+proc leftCellFor(self: CA1D, i: int): bool =
+  if i - 1 > 0: self.universe[i - 1]
+  else: self.universe[self.size - 1]
+
+proc rightCellFor(self: CA1D, i: int): bool =
+  if i + 1 < self.size: self.universe[i + 1]
+  else: self.universe[0]
+
+proc step(self: CA1D): Universe =
+  result = newSeq[bool](self.size)
+  for i in 0..self.size - 1:
+    let
+      left = self.leftCellFor(i)
+      mid = self.universe[i]
+      right = self.rightCellFor(i)
+      pattern = (left, mid, right)
+    result[i] = self.rule.Rule[pattern.index]
+  self.age += 1
+
+proc randomize(self: CA1D) =
+  # randomize the universe
+  for i in 0.. <self.size:
+    self.universe[i] = random(2) == 1
+
+proc newRenderTexture(app: App): TexturePtr =
+  let format = app.window.getPixelFormat()
+  app.display.createTexture(format, SDL_TEXTUREACCESS_TARGET, app.size.w, app.size.h)
 
 proc newGameScene(app: App): GameScene =
   new(result)
   result.app = app
-  result.buf = app.display.createTexture(
-    app.window.getPixelFormat(), SDL_TEXTUREACCESS_TARGET, app.size.w.cint, app.size.h.cint)
+  result.buf = app.newRenderTexture()
+  result.sim = newCA1D(0, newSeq[bool](app.size.w))
+  result.sim.randomize()
 
-# treat uint8 as bool
-converter uint82bool(x: uint8):bool  = bool(x)
-# native rects to c rects
-converter intRect2cintRect(t: tuple[x:int,y:int,w:int,h:int]):
-  sdl2.Rect = (t.x.cint, t.y.cint, t.w.cint,t.h.cint)
+proc autoStep(self: GameScene) =
+  if self.sim.age > 20:
+    # auto step the ruleset number
+    self.sim.age = 0
+    self.sim.rule += 1
+    self.sim.randomize()
+
+proc keyUpdate(self: GameScene, keys: ptr array[0 .. SDL_NUM_SCANCODES.int, uint8]) =
+  # continuous per-frame input handling
+  if keys[SDL_SCANCODE_LEFT.cint]: discard
+  elif keys[SDL_SCANCODE_RIGHT.cint]: discard
+  if keys[SDL_SCANCODE_UP.cint]: discard
+  elif keys[SDL_SCANCODE_DOWN.cint]: discard
 
 method update(self: GameScene, t, dt: float) =
-  # continuous per-frame input handling
-  let keys = getKeyboardState()
+  # step the simulation
+  self.sim.universe = self.sim.step()
+  # auto step the ruleset number
+  self.autoStep()
+  # realtime key handling
+  self.keyUpdate(getKeyboardState())
 
-  if keys[SDL_SCANCODE_LEFT.cint]:
-    discard
-  elif keys[SDL_SCANCODE_RIGHT.cint]:
-    discard
-  if keys[SDL_SCANCODE_UP.cint]:
-    discard
-  elif keys[SDL_SCANCODE_DOWN.cint]:
-    discard
-
-proc handle_key(gs: GameScene, keysym: KeySym) =
+proc handleKey(self: GameScene, keysym: KeySym) =
   # event-based input handling
   case keysym.sym:
     of K_LEFT: discard
     of K_RIGHT: discard
     of K_UP: discard
-    of K_DOwN: discard
+    of K_DOWN: discard
     else: discard
 
 method handle(self: GameScene, event: Event) =
   case event.kind:
     of KeyDown:
-      self.handle_key(event.key.keysym)
+      self.handleKey(event.key.keysym)
     else: discard
 
-method draw(self: GameScene) =
+proc startTextureRender(self: GameScene): Size =
   self.app.display.setRenderTarget(self.buf)
-  let size = self.app.getLogicalSize()
+  self.app.getLogicalSize()
+
+proc endTextureRender(self: GameScene, src, dst: ptr sdl2.Rect) =
+  self.app.display.copy(self.buf, src, dst)
+  self.app.display.setRenderTarget(nil)
+  self.app.display.copy(self.buf, nil, dst)
+
+method draw(self: GameScene) =
+  let size = self.startTextureRender()
+
   self.app.display.setDrawColor(255, 0, 0, 255)
 
-  for i in 0..size.w:
-    if random(2) == 1:
-      self.app.display.drawPoint(i.cint, self.app.size.h.cint)
+  for i in 0..self.sim.size - 1:
+    if self.sim.universe[i]:
+      self.app.display.drawPoint(i, self.app.size.h)
+
   var
-    source: Rect = (0, 1, size.w, size.h - 1)
-    destination: Rect = (0, 0, size.w, size.h - 1)
+    source: sdl2.Rect = (0, 1, size.w, size.h - 1)
+    destination: sdl2.Rect = (0, 0, size.w, size.h - 1)
 
-  self.app.display.copy(self.buf, addr source, addr destination)
-  self.app.display.setRenderTarget(nil)
-  self.app.display.copy(self.buf, nil, addr destination)
+  self.endTextureRender(addr source, addr destination)
 
-let
-  app = newApp("settings.json")
-  scene = newGameScene(app)
-  ruleset = MakeRuleset(30)
+when not defined(SUT):
+  let
+    app = newApp("settings.json")
+    scene = newGameScene(app)
 
-app.size = app.getLogicalSize()
-app.run(scene)
+  app.size = app.getLogicalSize()
+  app.run(scene)

@@ -9,6 +9,7 @@ switch("verbosity", "0")
 switch("nimcache", ".nimcache")
 
 task test, "test the example":
+  switch("define", "SUT")
   switch("out", "bin/test")
   switch("r")
   setCommand("c", "test.nim")
